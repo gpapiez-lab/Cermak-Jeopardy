@@ -426,12 +426,6 @@ btnShowQR.onclick = () => {
   });
 };
 
-
-    // Debug (optional): remove after it works
-    console.log("QR rendered:", { n, cellSize, size, url });
-  });
-};
-
   btnCloseQR.onclick = ()=> qrOverlay.classList.remove("show");
   qrOverlay.onclick = (e)=>{ if(e.target===qrOverlay) qrOverlay.classList.remove("show"); };
   window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") qrOverlay.classList.remove("show"); });
