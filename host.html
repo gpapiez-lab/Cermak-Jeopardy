@@ -244,30 +244,61 @@
    Source: kazuhikoarase/qrcode-generator (MIT)
 */
 function makeQR(canvas, text) {
-  const qr = qrcode(0, "M"); // auto version, EC=M
-  qr.addData(text);
-  qr.make(); // ✅ REQUIRED
+  try {
+    // Ensure text is a string
+    const urlString = String(text).trim();
+    if (!urlString) {
+      console.error("QR code: empty text");
+      return;
+    }
 
-  const ctx = canvas.getContext("2d");
-  const size = qr.getModuleCount();
-  const rect = canvas.getBoundingClientRect();
-  let scale = Math.floor(Math.min(rect.width, rect.height) / size);
+    const qr = qrcode(0, "M"); // auto version, EC=M
+    qr.addData(urlString);
+    qr.make(); // ✅ REQUIRED
 
-  if (!Number.isFinite(scale) || scale < 6) scale = 10;
+    const ctx = canvas.getContext("2d");
+    const size = qr.getModuleCount();
+    
+    if (size === 0) {
+      console.error("QR code: invalid size");
+      return;
+    }
+    
+    // Get the actual displayed size from CSS
+    const rect = canvas.getBoundingClientRect();
+    const displaySize = Math.min(rect.width || 400, rect.height || 400);
+    
+    // QR codes need a quiet zone (4 modules on each side)
+    const quietZone = 4;
+    const totalSize = size + (quietZone * 2);
+    
+    // Calculate scale - ensure at least 4 pixels per module for readability
+    let scale = Math.floor(displaySize / totalSize);
+    if (!Number.isFinite(scale) || scale < 4) scale = 10;
 
-  canvas.width = canvas.height = size * scale;
+    // Set canvas internal resolution
+    const canvasSize = totalSize * scale;
+    canvas.width = canvasSize;
+    canvas.height = canvasSize;
 
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle = "#000";
-
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (qr.isDark(r, c)) {
-        ctx.fillRect(c * scale, r * scale, scale, scale);
+    // Fill white background (quiet zone)
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvasSize, canvasSize);
+    
+    // Draw QR code modules with quiet zone offset
+    ctx.fillStyle = "#000";
+    const offset = quietZone * scale;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (qr.isDark(r, c)) {
+          ctx.fillRect(offset + c * scale, offset + r * scale, scale, scale);
+        }
       }
     }
+    
+    console.log("QR code generated:", { url: urlString, size, scale, canvasSize });
+  } catch (error) {
+    console.error("QR code generation error:", error);
   }
 }
 
@@ -420,9 +451,12 @@ btnShowQR.onclick = () => {
 
   qrOverlay.classList.add("show");
 
-  // Wait a frame so layout is visible, then draw
+  // Wait for layout to settle, then draw QR code
+  // Use double RAF to ensure layout is complete
   requestAnimationFrame(() => {
-    makeQR(qrCanvas, url);
+    requestAnimationFrame(() => {
+      makeQR(qrCanvas, url);
+    });
   });
 };
 
