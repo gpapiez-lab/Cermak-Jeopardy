@@ -175,41 +175,30 @@
 </div>
 
 <script type="module">
-  /** ===== Firebase imports (ES modules) =====
-   * If these URLs ever change, use the current Firebase Web SDK import pattern.
-   * Firestore realtime listeners and init are standard usage.  [oai_citation:2‡Firebase](https://firebase.google.com/docs/firestore/query-data/get-data?utm_source=chatgpt.com)
-   */
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, updateDoc, onSnapshot,
-    serverTimestamp, collection, query, onSnapshot as onSnapQuery,
-    runTransaction
+    serverTimestamp, collection, query, onSnapshot as onSnapQuery
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // 🔥 REPLACE THIS
-  // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-  
-const firebaseConfig = {
-  apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
-  authDomain: "jeopardy-5956d.firebaseapp.com",
-  projectId: "jeopardy-5956d",
-  storageBucket: "jeopardy-5956d.firebasestorage.app",
-  messagingSenderId: "979136812527",
-  appId: "1:979136812527:web:904c0fc6f773f20596921a"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+  // ✅ YOUR CONFIG
+  const firebaseConfig = {
+    apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
+    authDomain: "jeopardy-5956d.firebaseapp.com",
+    projectId: "jeopardy-5956d",
+    storageBucket: "jeopardy-5956d.firebasestorage.app",
+    messagingSenderId: "979136812527",
+    appId: "1:979136812527:web:904c0fc6f773f20596921a"
   };
 
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  await signInAnonymously(auth);
+
   /** =========================
-   *  GAME CONTENT
+   *  EDIT GAME CONTENT HERE
    *  ========================= */
   const GAME = {
     title: "Jeopardy Quiz Night",
@@ -256,9 +245,6 @@ const app = initializeApp(firebaseConfig);
     final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
   };
 
-  /** =========================
-   *  TEAM SETUP PROMPTS
-   *  ========================= */
   function setupTeams(){
     let count;
     do { count = parseInt(prompt("How many teams?", "4") || "", 10); }
@@ -273,17 +259,7 @@ const app = initializeApp(firebaseConfig);
     GAME.teams = teams;
   }
 
-  /** =========================
-   *  FIREBASE INIT
-   *  ========================= */
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  await signInAnonymously(auth); // required for the rules
-
-  /** =========================
-   *  BUZZER (Firestore)
-   *  ========================= */
+  /** ===== BUZZER ===== */
   const roomCodeEl = document.getElementById("roomCode");
   const joinLinkEl = document.getElementById("joinLink");
   const buzzStatusEl = document.getElementById("buzzStatus");
@@ -297,12 +273,16 @@ const app = initializeApp(firebaseConfig);
   let unsubPlayers = null;
 
   function randCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
-  function playerJoinUrl(){ return `${location.origin}${location.pathname.replace(/host\.html$/,'') }player.html`; }
 
-  function setBuzzerUI({locked=false, winnerName=null, players=[]}){
-    buzzStatusEl.textContent = roomCode ? (locked ? "LOCKED" : "Ready") : "—";
-    buzzWinnerEl.textContent = winnerName || "—";
-    playerListEl.textContent = players.length ? players.join(", ") : "—";
+  // ✅ GitHub Pages-safe: builds correct URL even with /repo-name/
+  function playerJoinUrl(){
+    return new URL("player.html", window.location.href).toString();
+  }
+
+  function setBuzzerUI({locked, winnerName, players}){
+    if (locked !== undefined) buzzStatusEl.textContent = roomCode ? (locked ? "LOCKED" : "Ready") : "—";
+    if (winnerName !== undefined) buzzWinnerEl.textContent = winnerName || "—";
+    if (players !== undefined) playerListEl.textContent = players.length ? players.join(", ") : "—";
   }
 
   async function createRoom(){
@@ -315,250 +295,16 @@ const app = initializeApp(firebaseConfig);
     await setDoc(ref, { createdAt: serverTimestamp(), locked:false, winnerName:null, winnerUid:null });
 
     watchRoom(roomCode);
+    setBuzzerUI({locked:false, winnerName:null, players:[]});
   }
 
   function watchRoom(code){
     unsubRoom?.(); unsubPlayers?.();
 
-    const roomRef = doc(db, "rooms", code);
-
-    unsubRoom = onSnapshot(roomRef, (snap)=>{
+    unsubRoom = onSnapshot(doc(db,"rooms",code), (snap)=>{
       if(!snap.exists()) return;
       const d = snap.data();
-      setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName, players: null });
+      setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName ?? null });
     });
 
-    const playersQ = query(collection(db, "rooms", code, "players"));
-    unsubPlayers = onSnapQuery(playersQ, (qs)=>{
-      const names = [];
-      qs.forEach(doc=> names.push(doc.data()?.name || "?" ));
-      setBuzzerUI({ players: names });
-    });
-  }
-
-  btnNewRoom.addEventListener("click", createRoom);
-
-  btnResetBuzz.addEventListener("click", async ()=>{
-    if(!roomCode) return;
-    await updateDoc(doc(db, "rooms", roomCode), { locked:false, winnerName:null, winnerUid:null });
-  });
-
-  /** =========================
-   *  JEOPARDY ENGINE
-   *  ========================= */
-  const $ = (s)=>document.querySelector(s);
-  const boardEl = $("#board");
-  const scoreboardEl = $("#scoreboard");
-  const qOverlay = $("#qOverlay");
-  const fOverlay = $("#fOverlay");
-
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} } };
-  const keyOf=(c,r)=>`${c}-${r}`;
-  const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
-  const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  const money=(n)=>{const m=Math.round(n); return (m<0? "-$"+Math.abs(m): "$"+m);};
-
-  function initJeopardy(){
-    $("#gameTitle").textContent = GAME.title;
-    $("#gameSubtitle").textContent = GAME.subtitle;
-
-    GAME.teams.forEach(t=> state.scores[t]=0);
-    state.activeTeam = GAME.teams[0];
-
-    renderScoreboard(); renderBoard(); bindUI();
-  }
-
-  function renderScoreboard(){
-    scoreboardEl.innerHTML = `
-      <div class="teams">
-        ${GAME.teams.map(t=>`
-          <div class="team">
-            <div class="name">
-              <span>${esc(t)}</span>
-              <span class="score" id="score-${cssId(t)}">${money(state.scores[t])}</span>
-            </div>
-            <div class="adj">
-              <button class="good" data-adj="+100" data-team="${esc(t)}">+100</button>
-              <button class="danger" data-adj="-100" data-team="${esc(t)}">-100</button>
-              <button class="secondary" data-setactive="${esc(t)}">Active</button>
-            </div>
-          </div>
-        `).join("")}
-      </div>
-      <div class="pill">Active team: <strong style="color:var(--text)">${esc(state.activeTeam)}</strong></div>
-    `;
-
-    scoreboardEl.querySelectorAll("button[data-adj]").forEach(b=>{
-      b.onclick=()=>{ state.scores[b.dataset.team]+=parseInt(b.dataset.adj,10); updateScores(); };
-    });
-    scoreboardEl.querySelectorAll("button[data-setactive]").forEach(b=>{
-      b.onclick=()=>{ state.activeTeam=b.dataset.setactive; renderScoreboard(); if(qOverlay.classList.contains("show")) renderQTeams(); };
-    });
-  }
-
-  function renderBoard(){
-    boardEl.style.gridTemplateColumns = `repeat(${GAME.categories.length}, minmax(140px,1fr))`;
-    const cells = [];
-    GAME.categories.forEach(cat=>cells.push(`<div class="cell category">${esc(cat.name)}</div>`));
-    for(let r=0;r<GAME.values.length;r++){
-      for(let c=0;c<GAME.categories.length;c++){
-        const used = state.used.has(keyOf(c,r));
-        const clue = GAME.categories[c].clues[r];
-        const show = state.showDD && clue.dd;
-        cells.push(`
-          <div class="cell question ${used?"used":""}" data-c="${c}" data-r="${r}" tabindex="0">
-            ${used? "" : "$"+GAME.values[r]}
-            ${show? `<span class="badge">DD</span>`:""}
-          </div>
-        `);
-      }
-    }
-    boardEl.innerHTML = cells.join("");
-    boardEl.querySelectorAll(".cell.question").forEach(cell=>{
-      const open=()=>{
-        const c=+cell.dataset.c, r=+cell.dataset.r;
-        if(state.used.has(keyOf(c,r))) return;
-        openQuestion(c,r);
-      };
-      cell.onclick=open;
-      cell.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
-    });
-  }
-
-  function openQuestion(c,r){
-    const cat=GAME.categories[c], clue=cat.clues[r], value=GAME.values[r];
-    state.current={c,r,value,clue};
-    $("#qTitle").textContent=cat.name;
-    $("#qMeta").textContent=`For ${money(value)} • Active team: ${state.activeTeam}`;
-    $("#qPrompt").textContent=clue.q;
-    $("#qAnswer").textContent=clue.a;
-    $("#qReveal").classList.remove("show");
-    $("#qValuePill").textContent=money(value);
-    $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
-    renderQTeams();
-    qOverlay.classList.add("show");
-  }
-
-  function renderQTeams(){
-    const wrap=$("#qTeams");
-    wrap.innerHTML = GAME.teams.map(t=>`
-      <button class="${t===state.activeTeam?"":"secondary"}" data-team="${esc(t)}">${esc(t)} ${t===state.activeTeam?"✓":""}</button>
-    `).join("");
-    wrap.querySelectorAll("button").forEach(b=>{
-      b.onclick=()=>{
-        state.activeTeam=b.dataset.team;
-        $("#qMeta").textContent=`For ${money(state.current.value)} • Active team: ${state.activeTeam}`;
-        renderScoreboard(); renderQTeams();
-      };
-    });
-  }
-
-  function closeQ(){ qOverlay.classList.remove("show"); state.current=null; }
-  function markUsed(c,r){
-    state.used.add(keyOf(c,r));
-    const tile = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
-    if(tile){ tile.classList.add("used"); tile.textContent=""; }
-  }
-  function updateScores(){
-    GAME.teams.forEach(t=>{
-      const el=document.getElementById(`score-${cssId(t)}`);
-      if(el) el.textContent=money(state.scores[t]);
-    });
-  }
-
-  function applyResult(correct){
-    if(!state.current) return;
-    const {c,r,value,clue}=state.current;
-
-    let delta=value;
-    if(clue.dd){
-      const w = Number(prompt(`Daily Double! Enter wager for ${state.activeTeam}:`, String(value)));
-      if(Number.isFinite(w) && w>=0) delta=Math.round(w);
-    }
-
-    state.scores[state.activeTeam] += correct ? delta : -delta;
-    updateScores();
-    markUsed(c,r);
-    closeQ();
-  }
-
-  function openFinal(){
-    $("#fMeta").textContent = GAME.final.category;
-    $("#fPrompt").textContent = GAME.final.q;
-    $("#fAnswer").textContent = GAME.final.a;
-    $("#fReveal").classList.remove("show");
-
-    const grid=$("#finalGrid");
-    grid.innerHTML = GAME.teams.map(t=>`
-      <div class="final-card" data-team="${esc(t)}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <div class="tname">${esc(t)}</div>
-          <div class="tscore">${money(state.scores[t])}</div>
-        </div>
-        <label>Wager</label>
-        <input type="number" min="0" step="1" inputmode="numeric" placeholder="e.g., 500" value="${state.final.wagers[t] ?? ""}">
-        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-          <button class="good" data-correct="1">Correct</button>
-          <button class="danger" data-correct="0">Wrong</button>
-          <span class="pill" style="margin-left:auto" id="finalMark-${cssId(t)}">${
-            state.final.correct[t]===true ? "Marked: Correct" :
-            state.final.correct[t]===false ? "Marked: Wrong" : "Not marked"
-          }</span>
-        </div>
-      </div>
-    `).join("");
-
-    grid.querySelectorAll(".final-card").forEach(card=>{
-      const team=card.dataset.team;
-      const input=card.querySelector("input");
-      input.oninput=()=>{ const v=Number(input.value); state.final.wagers[team]=Number.isFinite(v)?Math.max(0,Math.round(v)):0; };
-      card.querySelectorAll("button[data-correct]").forEach(btn=>{
-        btn.onclick=()=>{
-          state.final.correct[team]=btn.dataset.correct==="1";
-          const mark=document.getElementById(`finalMark-${cssId(team)}`);
-          if(mark) mark.textContent = state.final.correct[team] ? "Marked: Correct" : "Marked: Wrong";
-        };
-      });
-    });
-
-    fOverlay.classList.add("show");
-  }
-
-  function applyFinal(){
-    GAME.teams.forEach(t=>{
-      const w=Number(state.final.wagers[t] ?? 0);
-      const ok=state.final.correct[t];
-      if(ok===true) state.scores[t]+=w;
-      else if(ok===false) state.scores[t]-=w;
-    });
-    updateScores();
-    renderScoreboard();
-    alert("Final wagers applied.");
-  }
-
-  function bindUI(){
-    $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Host: Hide DD":"Host: Show DD"; renderBoard(); };
-    $("#btnReset").onclick=()=>{ if(!confirm("Reset board & scores?"))return; state.used=new Set(); GAME.teams.forEach(t=>state.scores[t]=0); state.final={wagers:{},correct:{}}; renderScoreboard(); renderBoard(); };
-    $("#btnFinal").onclick=openFinal;
-
-    $("#btnCloseQ").onclick=closeQ;
-    qOverlay.onclick=(e)=>{ if(e.target===qOverlay) closeQ(); };
-    $("#btnReveal").onclick=()=>$("#qReveal").classList.toggle("show");
-    $("#btnCorrect").onclick=()=>applyResult(true);
-    $("#btnWrong").onclick=()=>applyResult(false);
-
-    $("#btnCloseF").onclick=()=>fOverlay.classList.remove("show");
-    fOverlay.onclick=(e)=>{ if(e.target===fOverlay) fOverlay.classList.remove("show"); };
-    $("#btnRevealFinal").onclick=()=>$("#fReveal").classList.toggle("show");
-    $("#btnApplyFinal").onclick=applyFinal;
-  }
-
-  /** =========================
-   *  START
-   *  ========================= */
-  setupTeams();
-  initJeopardy();
-  await createRoom();
-</script>
-</body>
-</html>
+    unsubPlayers = onSnapQu
