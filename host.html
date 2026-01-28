@@ -188,8 +188,23 @@
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   // 🔥 REPLACE THIS
-  const firebaseConfig = {
-    YOUR_FIREBASE_CONFIG_HERE
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
+  authDomain: "jeopardy-5956d.firebaseapp.com",
+  projectId: "jeopardy-5956d",
+  storageBucket: "jeopardy-5956d.firebasestorage.app",
+  messagingSenderId: "979136812527",
+  appId: "1:979136812527:web:904c0fc6f773f20596921a"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
   };
 
   /** =========================
