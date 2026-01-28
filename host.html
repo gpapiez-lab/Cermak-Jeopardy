@@ -136,7 +136,7 @@
 </div>
 
 <!-- Audio Elements -->
-<audio id="audioTheme" loop>
+<audio id="audioTheme" loop autoplay>
   <source src="Resources/jeopardy_theme.mp3" type="audio/mpeg">
 </audio>
 <audio id="audioCorrect">
@@ -892,43 +892,45 @@ btnShowQR.onclick = () => {
     }
   }
 
-  // START - Initialize UI and start theme music
+  // START - Initialize UI and start theme music IMMEDIATELY
   // CRITICAL: Don't initialize game until start button is clicked
   // setupTeams() MUST ONLY be called from the start button handler above
   
   bindUI();
   
-  // Start theme music when splash screen appears
-  // Try multiple approaches to handle autoplay restrictions
-  function startThemeMusic() {
+  // Start theme music IMMEDIATELY when splash screen appears
+  // Try to play right away - no delays
+  (function startThemeMusicImmediately() {
     const themeAudio = document.getElementById('audioTheme');
     if (themeAudio) {
       themeAudio.volume = 0.7;
-      const playPromise = themeAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(err => {
-          console.log('Theme music autoplay blocked, will play on first click');
-          // Play on first user interaction
-          const playOnClick = () => {
-            themeAudio.play().catch(() => {});
-            document.removeEventListener('click', playOnClick);
-            document.removeEventListener('touchstart', playOnClick);
-          };
-          document.addEventListener('click', playOnClick, { once: true });
-          document.addEventListener('touchstart', playOnClick, { once: true });
-        });
-      }
+      // Try to play immediately
+      themeAudio.play().catch(err => {
+        // If autoplay is blocked, try again when user interacts
+        console.log('Autoplay blocked, will play on first interaction');
+        const playOnInteraction = () => {
+          themeAudio.play().catch(() => {});
+        };
+        // Try on any user interaction
+        document.addEventListener('click', playOnInteraction, { once: true });
+        document.addEventListener('touchstart', playOnInteraction, { once: true });
+        document.addEventListener('keydown', playOnInteraction, { once: true });
+      });
+    } else {
+      // Audio element not ready yet, try again in a moment
+      setTimeout(startThemeMusicImmediately, 50);
     }
-  }
+  })();
   
-  // Try to start music when DOM is ready
+  // Also ensure it plays when DOM is fully ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(startThemeMusic, 200);
+      const themeAudio = document.getElementById('audioTheme');
+      if (themeAudio && themeAudio.paused) {
+        themeAudio.volume = 0.7;
+        themeAudio.play().catch(() => {});
+      }
     });
-  } else {
-    // DOM already loaded
-    setTimeout(startThemeMusic, 500);
   }
 </script>
 </body>
