@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Jeopardy + Firebase Buzzer</title>
-  <script src="https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     :root{--bg:#0b1020;--panel:#111a33;--tile:#17306e;--tile2:#10265c;--accent:#f7c948;--text:#e9eefc;--muted:#a9b5d6;--danger:#ff5d5d;--good:#46d39a;--border:rgba(255,255,255,.12);--shadow:0 10px 30px rgba(0,0,0,.35);--radius:16px;--font:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
     *{box-sizing:border-box}
@@ -223,6 +223,7 @@
   function waitForQRCode() {
     return new Promise((resolve) => {
       if (typeof QRCode !== 'undefined') {
+        console.log("QRCode library already loaded");
         resolve();
         return;
       }
@@ -231,6 +232,7 @@
         attempts++;
         if (typeof QRCode !== 'undefined') {
           clearInterval(checkInterval);
+          console.log("QRCode library loaded after", attempts * 100, "ms");
           resolve();
         } else if (attempts > 50) { // 5 seconds max wait
           clearInterval(checkInterval);
@@ -266,7 +268,9 @@
   const db = getFirestore(app);
   await signInAnonymously(auth);
 
-  /* ===== QR GENERATOR using qrcode library (npm) ===== */
+  /* ===== QR GENERATOR using qrcodejs library ===== */
+let qrCodeInstance = null;
+
 function makeQR(canvas, text) {
   try {
     // Check if QRCode library is available
@@ -300,22 +304,43 @@ function makeQR(canvas, text) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, displaySize, displaySize);
     
-    // Use qrcode library to generate QR code directly to canvas
-    // According to docs: color must be RGBA hex format (#RRGGBBAA)
-    // width option sets the output image width in pixels
-    QRCode.toCanvas(canvas, urlString, {
+    // qrcodejs library creates its own canvas, so we need to use a temporary container
+    // Create or reuse a temporary container
+    let tempContainer = document.getElementById('qr-temp-container');
+    if (!tempContainer) {
+      tempContainer = document.createElement('div');
+      tempContainer.id = 'qr-temp-container';
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.width = displaySize + 'px';
+      tempContainer.style.height = displaySize + 'px';
+      document.body.appendChild(tempContainer);
+    } else {
+      // Clear previous QR code
+      tempContainer.innerHTML = '';
+      tempContainer.style.width = displaySize + 'px';
+      tempContainer.style.height = displaySize + 'px';
+    }
+
+    // Use qrcodejs library - it creates its own canvas element
+    qrCodeInstance = new QRCode(tempContainer, {
+      text: urlString,
       width: displaySize,
-      margin: 4, // Quiet zone - standard is 4 modules (white border)
-      color: {
-        dark: '#000000ff', // Black with full opacity (RGBA format)
-        light: '#ffffffff' // White with full opacity (RGBA format)
-      },
-      errorCorrectionLevel: 'M' // Medium error correction (~15% error resistance)
-    }, function (error) {
-      if (error) {
-        console.error("QR code generation error:", error);
-        // Don't show alert, just log - user can check console
-      } else {
+      height: displaySize,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    // Wait for QR code to render, then copy to our canvas
+    setTimeout(() => {
+      const qrCanvas = tempContainer.querySelector('canvas');
+      if (qrCanvas && canvas) {
+        // Copy the QR code from the library's canvas to our canvas
+        ctx.clearRect(0, 0, displaySize, displaySize);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, displaySize, displaySize);
+        ctx.drawImage(qrCanvas, 0, 0, displaySize, displaySize);
         console.log("QR code generated successfully:", { 
           url: urlString, 
           size: displaySize,
@@ -323,7 +348,7 @@ function makeQR(canvas, text) {
           canvasHeight: canvas.height
         });
       }
-    });
+    }, 100);
     
   } catch (error) {
     console.error("QR code generation exception:", error);
