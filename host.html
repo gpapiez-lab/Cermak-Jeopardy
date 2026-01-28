@@ -554,65 +554,98 @@ function makeQR(canvas, text) {
 
   async function createRoom(){
     roomCode = randCode();
+    console.log('Creating room:', roomCode);
+    
     // Hide room code from display (keep it for Firebase functionality)
-    roomCodeEl.textContent = ""; // Empty or hide the element
-    joinLinkEl.textContent = playerUrlWithRoom(roomCode); // Just show URL, no room code
-    btnResetBuzz.disabled = false;
+    if (roomCodeEl) roomCodeEl.textContent = ""; // Empty or hide the element
+    if (joinLinkEl) joinLinkEl.textContent = playerUrlWithRoom(roomCode); // Just show URL, no room code
+    if (btnResetBuzz) btnResetBuzz.disabled = false;
 
     const ref = doc(db, "rooms", roomCode);
     await setDoc(ref, { createdAt: serverTimestamp(), locked:false, winnerName:null, winnerUid:null });
 
+    // Start watching the room for players
     watchRoom(roomCode);
     setBuzzerUI({locked:false, winnerName:null, players:[]});
+    
+    console.log('Room created and watching for players...');
   }
 
   let currentPlayers = []; // Track current players
   const MAX_PLAYERS = 4;
 
   function watchRoom(code){
+    console.log('Watching room:', code);
     unsubRoom?.(); unsubPlayers?.();
 
     unsubRoom = onSnapshot(doc(db,"rooms",code), (snap)=>{
-      if(!snap.exists()) return;
+      if(!snap.exists()) {
+        console.log('Room does not exist');
+        return;
+      }
       const d = snap.data();
       setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName ?? null });
     });
 
     unsubPlayers = onSnapQuery(query(collection(db,"rooms",code,"players")), (qs)=>{
+      console.log('Firebase players query result:', qs.size, 'players');
       const names=[];
-      qs.forEach(s=>names.push(s.data()?.name || "?"));
+      qs.forEach(s=>{
+        const playerData = s.data();
+        console.log('Player data:', playerData);
+        if (playerData && playerData.name) {
+          names.push(playerData.name);
+        }
+      });
+      
+      console.log('Players updated:', names); // Debug log
       currentPlayers = names; // Update current players list
       setBuzzerUI({ players: names });
       
-      // Update QR modal display
-      if (qrPlayerCount) {
-        qrPlayerCount.textContent = `${names.length}/${MAX_PLAYERS} players joined`;
+      // Update QR modal display - ensure elements exist
+      const qrPlayerCountEl = document.getElementById("qrPlayerCount");
+      const qrPlayerNamesEl = document.getElementById("qrPlayerNames");
+      const btnCloseQREl = document.getElementById("btnCloseQR");
+      
+      if (qrPlayerCountEl) {
+        qrPlayerCountEl.textContent = `${names.length}/${MAX_PLAYERS} players joined`;
         if (names.length >= MAX_PLAYERS) {
-          qrPlayerCount.textContent = `All players joined! (${MAX_PLAYERS}/${MAX_PLAYERS})`;
-          qrPlayerCount.style.color = 'var(--good)';
+          qrPlayerCountEl.textContent = `All players joined! (${MAX_PLAYERS}/${MAX_PLAYERS})`;
+          qrPlayerCountEl.style.color = 'var(--good)';
+        } else {
+          qrPlayerCountEl.style.color = 'var(--accent)';
         }
+      } else {
+        console.warn('qrPlayerCount element not found');
       }
-      if (qrPlayerNames) {
-        qrPlayerNames.textContent = names.length > 0 ? names.join(', ') : 'None yet';
+      
+      if (qrPlayerNamesEl) {
+        qrPlayerNamesEl.textContent = names.length > 0 ? names.join(', ') : 'None yet';
+      } else {
+        console.warn('qrPlayerNames element not found');
       }
       
       // Update button text based on player count
-      if (btnCloseQR) {
+      if (btnCloseQREl) {
         if (names.length > 0) {
-          btnCloseQR.textContent = 'Start Game';
-          btnCloseQR.disabled = false;
+          btnCloseQREl.textContent = 'Start Game';
+          btnCloseQREl.disabled = false;
         } else {
-          btnCloseQR.textContent = 'Waiting for players...';
-          btnCloseQR.disabled = true;
+          btnCloseQREl.textContent = 'Close';
+          btnCloseQREl.disabled = false; // Allow closing even without players
         }
+      } else {
+        console.warn('btnCloseQR element not found');
       }
       
       // Auto-close QR screen when max players reached
-      if (names.length >= MAX_PLAYERS && qrOverlay.classList.contains('show')) {
+      if (names.length >= MAX_PLAYERS && qrOverlay && qrOverlay.classList.contains('show')) {
         setTimeout(() => {
           closeQRAndStartGame(names);
         }, 1000); // Small delay to show "All players joined" message
       }
+    }, (error) => {
+      console.error('Error watching players:', error);
     });
   }
   
@@ -621,13 +654,13 @@ function makeQR(canvas, text) {
     qrOverlay.classList.remove('show');
     
     // Use player names as teams
-    if (playerNames.length > 0) {
+    if (playerNames && playerNames.length > 0) {
       GAME.teams = playerNames.slice(0, MAX_PLAYERS); // Limit to max players
+      console.log('Starting game with teams:', GAME.teams);
       initJeopardy();
-      console.log('Game started with teams:', GAME.teams);
     } else {
-      // Fallback if no players (shouldn't happen, but just in case)
-      alert('No players joined. Please try again.');
+      // Just close, don't start game
+      console.log('QR closed but no players to start game with');
     }
   }
 
@@ -656,16 +689,20 @@ function makeQR(canvas, text) {
     qrUrlText.textContent = url;
     
     // Reset player count display
-    if (qrPlayerCount) {
-      qrPlayerCount.textContent = "Waiting for players... (0/4)";
-      qrPlayerCount.style.color = 'var(--accent)';
+    const qrPlayerCountEl = document.getElementById("qrPlayerCount");
+    const qrPlayerNamesEl = document.getElementById("qrPlayerNames");
+    const btnCloseQREl = document.getElementById("btnCloseQR");
+    
+    if (qrPlayerCountEl) {
+      qrPlayerCountEl.textContent = "Waiting for players... (0/4)";
+      qrPlayerCountEl.style.color = 'var(--accent)';
     }
-    if (qrPlayerNames) {
-      qrPlayerNames.textContent = 'None yet';
+    if (qrPlayerNamesEl) {
+      qrPlayerNamesEl.textContent = 'None yet';
     }
-    if (btnCloseQR) {
-      btnCloseQR.textContent = 'Waiting for players...';
-      btnCloseQR.disabled = true;
+    if (btnCloseQREl) {
+      btnCloseQREl.textContent = 'Close';
+      btnCloseQREl.disabled = false; // Allow closing
     }
 
     qrOverlay.classList.add("show");
@@ -684,11 +721,15 @@ function makeQR(canvas, text) {
   btnShowQR.onclick = showQRCode;
 
   btnCloseQR.onclick = ()=> {
+    // Host can always close QR screen
     if (currentPlayers.length > 0) {
+      // Start game with current players
       closeQRAndStartGame(currentPlayers);
     } else {
-      // Don't allow closing if no players
-      return;
+      // Just close QR screen, don't start game yet
+      qrOverlay.classList.remove("show");
+      // Show message that they need players
+      alert('No players have joined yet. The game will start once players join via QR code.');
     }
   };
   qrOverlay.onclick = (e)=>{ 
@@ -697,10 +738,13 @@ function makeQR(canvas, text) {
   };
   window.addEventListener("keydown",(e)=>{ 
     if(e.key==="Escape" && qrOverlay.classList.contains("show")) {
+      // Allow closing with Escape key
       if (currentPlayers.length > 0) {
         closeQRAndStartGame(currentPlayers);
+      } else {
+        qrOverlay.classList.remove("show");
+        alert('No players have joined yet. The game will start once players join via QR code.');
       }
-      // If no players, don't allow closing
     }
   });
 
