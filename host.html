@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Jeopardy + Firebase Buzzer</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <style>
     :root{--bg:#0b1020;--panel:#111a33;--tile:#17306e;--tile2:#10265c;--accent:#f7c948;--text:#e9eefc;--muted:#a9b5d6;--danger:#ff5d5d;--good:#46d39a;--border:rgba(255,255,255,.12);--shadow:0 10px 30px rgba(0,0,0,.35);--radius:16px;--font:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
     *{box-sizing:border-box}
@@ -244,6 +244,12 @@
   /* ===== QR GENERATOR using qrcode library (npm) ===== */
 function makeQR(canvas, text) {
   try {
+    // Check if QRCode library is available
+    if (typeof QRCode === 'undefined') {
+      console.error("QRCode library not loaded");
+      return;
+    }
+
     // Ensure text is a string
     const urlString = String(text).trim();
     if (!urlString) {
@@ -251,29 +257,51 @@ function makeQR(canvas, text) {
       return;
     }
 
+    if (!canvas) {
+      console.error("QR code: canvas element not found");
+      return;
+    }
+
     // Get the actual displayed size from CSS
     const rect = canvas.getBoundingClientRect();
-    const displaySize = Math.min(rect.width || 400, rect.height || 400);
+    const displaySize = Math.max(200, Math.min(rect.width || 400, rect.height || 400));
+    
+    console.log("Generating QR code:", { url: urlString, displaySize, canvasRect: rect });
+    
+    // Clear canvas first
+    const ctx = canvas.getContext("2d");
+    canvas.width = displaySize;
+    canvas.height = displaySize;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, displaySize, displaySize);
     
     // Use qrcode library to generate QR code directly to canvas
+    // According to docs: color must be RGBA hex format (#RRGGBBAA)
+    // width option sets the output image width in pixels
     QRCode.toCanvas(canvas, urlString, {
       width: displaySize,
-      margin: 2,
+      margin: 4, // Quiet zone - standard is 4 modules (white border)
       color: {
-        dark: '#000000',
-        light: '#FFFFFF'
+        dark: '#000000ff', // Black with full opacity (RGBA format)
+        light: '#ffffffff' // White with full opacity (RGBA format)
       },
-      errorCorrectionLevel: 'M'
+      errorCorrectionLevel: 'M' // Medium error correction (~15% error resistance)
     }, function (error) {
       if (error) {
         console.error("QR code generation error:", error);
+        // Don't show alert, just log - user can check console
       } else {
-        console.log("QR code generated:", { url: urlString, size: displaySize });
+        console.log("QR code generated successfully:", { 
+          url: urlString, 
+          size: displaySize,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height
+        });
       }
     });
     
   } catch (error) {
-    console.error("QR code generation error:", error);
+    console.error("QR code generation exception:", error);
   }
 }
 
@@ -366,9 +394,13 @@ function makeQR(canvas, text) {
   function randCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
 
   function playerUrlWithRoom(code){
-    const u = new URL("player.html", window.location.href);
+    // Ensure we create an absolute URL
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/');
+    const u = new URL("player.html", baseUrl);
     u.searchParams.set("room", code);
-    return u.toString();
+    const fullUrl = u.toString();
+    console.log("Generated player URL:", fullUrl);
+    return fullUrl;
   }
 
   function setBuzzerUI({locked, winnerName, players}){
@@ -417,6 +449,13 @@ function makeQR(canvas, text) {
 btnShowQR.onclick = () => {
   if (!roomCode) return alert("Create a room first.");
 
+  // Check if QRCode library is loaded
+  if (typeof QRCode === 'undefined') {
+    alert("QR Code library not loaded. Please refresh the page.");
+    console.error("QRCode library not found");
+    return;
+  }
+
   const url = playerUrlWithRoom(roomCode);
   qrUrlText.textContent = url;
   qrRoomText.textContent = roomCode;
@@ -431,7 +470,7 @@ btnShowQR.onclick = () => {
         makeQR(qrCanvas, url);
       });
     });
-  }, 100);
+  }, 150);
 };
 
   btnCloseQR.onclick = ()=> qrOverlay.classList.remove("show");
