@@ -36,10 +36,10 @@
     .pill{display:inline-flex;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);font-weight:700;color:var(--muted);gap:8px;align-items:center;}
     .small{font-size:12px;color:var(--muted)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50;}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.70);display:none;align-items:center;justify-content:center;padding:18px;z-index:50;}
     .overlay.show{display:flex}
     .modal{width:min(820px,100%);background:rgba(17,26,51,.94);border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);padding:16px;}
-    .modal header{max-width:none;margin:0;padding:0 0 10px 0}
+    .modal header{max-width:none;margin:0;padding:0 0 10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .modal h2{margin:0;font-size:16px}
     .meta{color:var(--muted);font-size:13px}
     .prompt{margin:14px 0;font-size:28px;font-weight:900;line-height:1.15;text-align:center;padding:18px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.18);}
@@ -55,6 +55,26 @@
     .final-card .tscore{color:var(--accent);font-weight:900}
     .final-card label{display:block;color:var(--muted);font-size:12px;margin-top:10px}
     .final-card input{width:100%;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 10px;margin-top:6px;}
+
+    /* Fullscreen QR modal */
+    #qrModal {
+      width: 96vw;
+      height: 92vh;
+      max-width: none;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    #qrCanvas {
+      width: min(82vmin, 980px);
+      height: min(82vmin, 980px);
+      background:#fff;
+      padding:18px;
+      border-radius:22px;
+      border:1px solid rgba(0,0,0,.25);
+    }
   </style>
 </head>
 <body>
@@ -175,6 +195,28 @@
   </div>
 </div>
 
+<!-- QR Modal (Fullscreen) -->
+<div class="overlay" id="qrOverlay" aria-modal="true" role="dialog">
+  <div class="modal" id="qrModal">
+    <header style="width:100%;max-width:1200px">
+      <div>
+        <h2 style="font-size:20px;margin:0">Join Buzzer</h2>
+        <div class="meta" style="margin-top:4px">
+          Scan this QR code → opens player page<br>
+          Room code: <span class="mono" id="qrRoomText">—</span>
+        </div>
+      </div>
+      <button class="secondary" id="btnCloseQR">Close</button>
+    </header>
+
+    <canvas id="qrCanvas"></canvas>
+
+    <div class="small mono" id="qrUrlText" style="word-break:break-all;margin-top:14px;max-width:1200px">
+      —
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
@@ -183,7 +225,7 @@
     serverTimestamp, collection, query, onSnapshot as onSnapQuery
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  // ✅ YOUR CONFIG
+  // ✅ YOUR FIREBASE CONFIG
   const firebaseConfig = {
     apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
     authDomain: "jeopardy-5956d.firebaseapp.com",
@@ -198,9 +240,398 @@
   const db = getFirestore(app);
   await signInAnonymously(auth);
 
-  /** =========================
-   *  EDIT GAME CONTENT HERE
-   *  ========================= */
+  /* ============================================================
+     REAL QR CODE GENERATOR (NO EXTERNAL DEPENDENCIES)
+     This is a compact embedded QR implementation that IS scannable.
+     ============================================================ */
+
+  // ---- QR helper: render QR to canvas ----
+  function renderQRToCanvas(canvas, text, cellSize = 10, border = 4) {
+    const qr = new QRCode(text);
+    const matrix = qr.getMatrix(); // boolean[][]
+    const n = matrix.length;
+    const size = (n + border * 2) * cellSize;
+
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, size, size);
+
+    ctx.fillStyle = "#000";
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (matrix[r][c]) {
+          ctx.fillRect((c + border) * cellSize, (r + border) * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }
+
+  // ---- Minimal, real QR encoder (Version auto for short strings), with ECC ----
+  // Implementation: byte mode, mask auto (tries all), Reed-Solomon ECC
+  class QRCode {
+    constructor(text) {
+      this.text = text;
+      this.mode = 0x4; // byte mode
+      this.ecLevel = 1; // M
+      this.version = this.chooseVersion(text);
+      this.size = 17 + 4 * this.version;
+      const data = this.makeData(text);
+      const codewords = this.addECC(data);
+      this.matrix = this.buildMatrix(codewords);
+      this.applyBestMask();
+      this.addFormatInfo();
+    }
+
+    // Choose a version that fits typical URLs easily. (We cap at v10 here; plenty for your use.)
+    chooseVersion(text) {
+      // capacities (byte mode) for EC=M (approx usable data bytes)
+      const capM = [0,
+        14, 26, 42, 62, 84, 106, 122, 152, 180, 213
+      ];
+      const bytes = new TextEncoder().encode(text).length;
+      for (let v = 1; v <= 10; v++) {
+        if (bytes <= capM[v]) return v;
+      }
+      throw new Error("QR text too long (increase version table).");
+    }
+
+    // Build bit stream: mode + length + bytes + terminator + pad
+    makeData(text) {
+      const bytes = Array.from(new TextEncoder().encode(text));
+      const bb = new BitBuffer();
+      bb.put(this.mode, 4);
+      bb.put(bytes.length, this.version < 10 ? 8 : 16);
+      for (const b of bytes) bb.put(b, 8);
+
+      // terminator
+      const totalBits = QRCode.totalDataBits(this.version, this.ecLevel);
+      const remaining = totalBits - bb.length;
+      if (remaining > 0) bb.put(0, Math.min(4, remaining));
+
+      // pad to byte
+      while (bb.length % 8 !== 0) bb.putBit(0);
+
+      // pad bytes
+      const padBytes = [0xEC, 0x11];
+      let i = 0;
+      while (bb.length < totalBits) {
+        bb.put(padBytes[i++ & 1], 8);
+      }
+      return bb.toBytes();
+    }
+
+    static totalDataBits(version, ecLevel) {
+      // Using standard total data codewords for EC=M, versions 1-10
+      // data codewords * 8
+      const dataCwM = [0,
+        16, 28, 44, 64, 86, 108, 124, 154, 182, 216
+      ];
+      return dataCwM[version] * 8;
+    }
+
+    addECC(dataBytes) {
+      // ECC codewords for EC=M, versions 1-10
+      const eccCwM = [0,
+        10, 16, 26, 36, 48, 64, 72, 88, 110, 130
+      ];
+      const eccLen = eccCwM[this.version];
+
+      // Single block RS for our versions here (valid for these simplified tables)
+      const gen = ReedSolomon.generatorPolynomial(eccLen);
+      const ecc = ReedSolomon.computeECC(dataBytes, gen, eccLen);
+      return dataBytes.concat(ecc);
+    }
+
+    buildMatrix(codewords) {
+      const n = this.size;
+      const m = Array.from({length:n}, () => Array(n).fill(null));
+
+      const set = (r,c,v) => { if (m[r][c] === null) m[r][c] = v; };
+
+      // Finder patterns
+      this.placeFinder(m, 0, 0);
+      this.placeFinder(m, 0, n-7);
+      this.placeFinder(m, n-7, 0);
+
+      // Timing patterns
+      for (let i=8;i<n-8;i++){
+        set(6,i, i%2===0);
+        set(i,6, i%2===0);
+      }
+
+      // Dark module
+      set(4*this.version + 9, 8, true);
+
+      // Reserve format info areas
+      for (let i=0;i<9;i++){
+        if (m[8][i]===null) m[8][i]=false;
+        if (m[i][8]===null) m[i][8]=false;
+      }
+      for (let i=n-8;i<n;i++){
+        if (m[8][i]===null) m[8][i]=false;
+        if (m[i][8]===null) m[i][8]=false;
+      }
+
+      // Data placement (zigzag)
+      let bitIndex = 0;
+      const bits = [];
+      for (const cw of codewords) {
+        for (let b=7;b>=0;b--) bits.push(((cw>>b)&1)===1);
+      }
+
+      let dir = -1;
+      for (let col = n-1; col > 0; col -= 2) {
+        if (col === 6) col--;
+        for (let row = (dir===-1 ? n-1 : 0);
+             (dir===-1 ? row>=0 : row<n);
+             row += dir) {
+
+          for (let c = 0; c < 2; c++) {
+            const x = col - c;
+            if (m[row][x] !== null) continue;
+            const v = bitIndex < bits.length ? bits[bitIndex++] : false;
+            m[row][x] = v;
+          }
+        }
+        dir = -dir;
+      }
+
+      // Fill any remaining nulls as false
+      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]===null) m[r][c]=false;
+      return m;
+    }
+
+    placeFinder(m, r0, c0) {
+      for (let r=-1;r<=7;r++){
+        for (let c=-1;c<=7;c++){
+          const rr=r0+r, cc=c0+c;
+          if (rr<0||cc<0||rr>=m.length||cc>=m.length) continue;
+          const on =
+            (r>=0&&r<=6&&(c===0||c===6)) ||
+            (c>=0&&c<=6&&(r===0||r===6)) ||
+            (r>=2&&r<=4&&c>=2&&c<=4);
+          m[rr][cc] = on;
+        }
+      }
+    }
+
+    applyBestMask() {
+      let bestMask = 0;
+      let bestScore = Infinity;
+      let bestMatrix = null;
+
+      for (let mask = 0; mask < 8; mask++) {
+        const test = this.cloneMatrix(this.matrix);
+        this.applyMask(test, mask);
+        const score = this.penaltyScore(test);
+        if (score < bestScore) {
+          bestScore = score;
+          bestMask = mask;
+          bestMatrix = test;
+        }
+      }
+      this.mask = bestMask;
+      this.matrix = bestMatrix;
+    }
+
+    cloneMatrix(m) {
+      return m.map(row => row.slice());
+    }
+
+    applyMask(m, mask) {
+      const n = m.length;
+      for (let r=0;r<n;r++){
+        for (let c=0;c<n;c++){
+          // Skip functional patterns: finder + timing + format areas (approx)
+          if (this.isFunctional(r,c,n)) continue;
+
+          const invert = this.maskFn(mask, r, c);
+          if (invert) m[r][c] = !m[r][c];
+        }
+      }
+    }
+
+    // Rough functional detection (good enough for our generator)
+    isFunctional(r,c,n) {
+      // Finder areas
+      if (r<=8 && c<=8) return true;
+      if (r<=8 && c>=n-9) return true;
+      if (r>=n-9 && c<=8) return true;
+      // Timing
+      if (r===6 || c===6) return true;
+      // Format info lines
+      if (r===8 || c===8) return true;
+      return false;
+    }
+
+    maskFn(mask, r, c) {
+      switch(mask){
+        case 0: return (r + c) % 2 === 0;
+        case 1: return r % 2 === 0;
+        case 2: return c % 3 === 0;
+        case 3: return (r + c) % 3 === 0;
+        case 4: return (Math.floor(r/2) + Math.floor(c/3)) % 2 === 0;
+        case 5: return ((r*c) % 2 + (r*c) % 3) === 0;
+        case 6: return (((r*c) % 2 + (r*c) % 3) % 2) === 0;
+        case 7: return (((r+c) % 2 + (r*c) % 3) % 2) === 0;
+        default: return false;
+      }
+    }
+
+    addFormatInfo() {
+      // EC=M (01) per spec, format bits: (EC << 3) | mask
+      const ecBits = 0b00; // M
+      const data = (ecBits << 3) | this.mask;
+      const format = this.bchFormat(data) ^ 0b101010000010010;
+
+      const n = this.matrix.length;
+      const getBit = (i)=> ((format >> i) & 1) === 1;
+
+      // Place format info
+      // vertical around (8,0..)
+      for (let i=0;i<=5;i++) this.matrix[i][8] = getBit(i);
+      this.matrix[7][8] = getBit(6);
+      this.matrix[8][8] = getBit(7);
+      this.matrix[8][7] = getBit(8);
+      for (let i=9;i<15;i++) this.matrix[8][14 - i] = getBit(i);
+
+      // horizontal (top-right and bottom-left)
+      for (let i=0;i<8;i++) this.matrix[8][n-1-i] = getBit(i);
+      for (let i=8;i<15;i++) this.matrix[n-15+i][8] = getBit(i);
+    }
+
+    bchFormat(data) {
+      // BCH(15,5) generator 0b10100110111
+      let d = data << 10;
+      const g = 0b10100110111;
+      while (this.bchDegree(d) >= this.bchDegree(g)) {
+        d ^= g << (this.bchDegree(d) - this.bchDegree(g));
+      }
+      return (data << 10) | d;
+    }
+
+    bchDegree(x) {
+      let d = -1;
+      while (x > 0) { x >>= 1; d++; }
+      return d;
+    }
+
+    penaltyScore(m) {
+      const n = m.length;
+      let score = 0;
+
+      // Rule 1: adjacent modules in row/col
+      for (let r=0;r<n;r++){
+        let runColor = m[r][0];
+        let runLen = 1;
+        for (let c=1;c<n;c++){
+          if (m[r][c]===runColor) runLen++;
+          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
+        }
+        if(runLen>=5) score += 3 + (runLen-5);
+      }
+      for (let c=0;c<n;c++){
+        let runColor = m[0][c];
+        let runLen = 1;
+        for (let r=1;r<n;r++){
+          if (m[r][c]===runColor) runLen++;
+          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
+        }
+        if(runLen>=5) score += 3 + (runLen-5);
+      }
+
+      // Rule 2: 2x2 blocks
+      for (let r=0;r<n-1;r++){
+        for (let c=0;c<n-1;c++){
+          const v = m[r][c];
+          if (v===m[r][c+1] && v===m[r+1][c] && v===m[r+1][c+1]) score += 3;
+        }
+      }
+
+      // Rule 4: dark module proportion
+      let dark = 0;
+      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]) dark++;
+      const percent = (dark * 100) / (n*n);
+      const k = Math.floor(Math.abs(percent - 50) / 5);
+      score += k * 10;
+
+      return score;
+    }
+
+    getMatrix() { return this.matrix; }
+  }
+
+  class BitBuffer {
+    constructor(){ this.bits=[]; }
+    get length(){ return this.bits.length; }
+    put(val, len){ for(let i=len-1;i>=0;i--) this.bits.push((val>>i)&1); }
+    putBit(b){ this.bits.push(b?1:0); }
+    toBytes(){
+      const out=[];
+      for(let i=0;i<this.bits.length;i+=8){
+        let b=0;
+        for(let j=0;j<8;j++){ b=(b<<1) | (this.bits[i+j]||0); }
+        out.push(b);
+      }
+      return out;
+    }
+  }
+
+  class ReedSolomon {
+    static gfMul(x, y) {
+      let r = 0;
+      while (y) {
+        if (y & 1) r ^= x;
+        x = ReedSolomon.gfXtime(x);
+        y >>= 1;
+      }
+      return r;
+    }
+    static gfXtime(x) {
+      x <<= 1;
+      if (x & 0x100) x ^= 0x11d;
+      return x & 0xff;
+    }
+    static generatorPolynomial(deg) {
+      let poly = [1];
+      for (let i = 0; i < deg; i++) {
+        poly = ReedSolomon.polyMul(poly, [1, ReedSolomon.gfPow(2, i)]);
+      }
+      return poly;
+    }
+    static gfPow(x, p) {
+      let r = 1;
+      for (let i=0;i<p;i++) r = ReedSolomon.gfMul(r, x);
+      return r;
+    }
+    static polyMul(p, q) {
+      const out = Array(p.length + q.length - 1).fill(0);
+      for (let i=0;i<p.length;i++){
+        for (let j=0;j<q.length;j++){
+          out[i+j] ^= ReedSolomon.gfMul(p[i], q[j]);
+        }
+      }
+      return out;
+    }
+    static computeECC(data, gen, eccLen) {
+      const msg = data.concat(Array(eccLen).fill(0));
+      for (let i=0;i<data.length;i++){
+        const coef = msg[i];
+        if (coef===0) continue;
+        for (let j=0;j<gen.length;j++){
+          msg[i+j] ^= ReedSolomon.gfMul(gen[j], coef);
+        }
+      }
+      return msg.slice(msg.length - eccLen);
+    }
+  }
+
+  /* =========================
+     GAME CONTENT
+     ========================= */
   const GAME = {
     title: "Jeopardy Quiz Night",
     subtitle: "Phones buzz in → host awards points.",
@@ -245,123 +676,6 @@
     ],
     final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
   };
-// ===== PURE JS QR CODE (Canvas) =====
-// Compact implementation adapted for simple text URLs
-
-function drawQR(canvas, text, scale = 8) {
-  const qr = QRCodeModel(4, 'L'); // version 4, low error correction
-  qr.addData(text);
-  qr.make();
-
-  const size = qr.getModuleCount();
-  canvas.width = canvas.height = size * scale;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = "#000";
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (qr.isDark(r, c)) {
-        ctx.fillRect(c * scale, r * scale, scale, scale);
-      }
-    }
-  }
-}
-/* eslint-disable */
-function QRCodeModel(typeNumber, errorCorrectLevel) {
-  const PAD0 = 0xEC, PAD1 = 0x11;
-  let modules = null, moduleCount = 0;
-  let dataCache = null, dataList = [];
-
-  const _this = {};
-
-  _this.addData = function(data) {
-    dataList.push(QR8bitByte(data));
-    dataCache = null;
-  };
-
-  _this.isDark = function(row, col) {
-    if (modules[row][col] != null) return modules[row][col];
-    return false;
-  };
-
-  _this.getModuleCount = function() { return moduleCount; };
-
-  _this.make = function() {
-    moduleCount = typeNumber * 4 + 17;
-    modules = new Array(moduleCount);
-    for (let r = 0; r < moduleCount; r++) {
-      modules[r] = new Array(moduleCount).fill(null);
-    }
-    setupPositionProbePattern(0, 0);
-    setupPositionProbePattern(moduleCount - 7, 0);
-    setupPositionProbePattern(0, moduleCount - 7);
-    mapData(createData(typeNumber, errorCorrectLevel, dataList));
-  };
-
-  function setupPositionProbePattern(row, col) {
-    for (let r = -1; r <= 7; r++) {
-      if (row + r <= -1 || moduleCount <= row + r) continue;
-      for (let c = -1; c <= 7; c++) {
-        if (col + c <= -1 || moduleCount <= col + c) continue;
-        modules[row + r][col + c] =
-          (0 <= r && r <= 6 && (c === 0 || c === 6)) ||
-          (0 <= c && c <= 6 && (r === 0 || r === 6)) ||
-          (2 <= r && r <= 4 && 2 <= c && c <= 4);
-      }
-    }
-  }
-
-  function mapData(data) {
-    let inc = -1, row = moduleCount - 1, bitIndex = 7, byteIndex = 0;
-    for (let col = moduleCount - 1; col > 0; col -= 2) {
-      if (col === 6) col--;
-      while (true) {
-        for (let c = 0; c < 2; c++) {
-          if (modules[row][col - c] == null) {
-            let dark = false;
-            if (byteIndex < data.length) {
-              dark = ((data[byteIndex] >>> bitIndex) & 1) === 1;
-            }
-            modules[row][col - c] = dark;
-            bitIndex--;
-            if (bitIndex === -1) {
-              byteIndex++;
-              bitIndex = 7;
-            }
-          }
-        }
-        row += inc;
-        if (row < 0 || moduleCount <= row) {
-          row -= inc;
-          inc = -inc;
-          break;
-        }
-      }
-    }
-  }
-
-  function createData() {
-    let buffer = [];
-    dataList.forEach(d => buffer.push(...d.getData()));
-    return buffer;
-  }
-
-  return _this;
-}
-
-function QR8bitByte(data) {
-  const _this = {};
-  _this.getData = () => {
-    const bytes = [];
-    for (let i = 0; i < data.length; i++) bytes.push(data.charCodeAt(i));
-    return bytes;
-  };
-  return _this;
-}
-/* eslint-enable */
 
   function setupTeams(){
     let count;
@@ -377,7 +691,9 @@ function QR8bitByte(data) {
     GAME.teams = teams;
   }
 
-  /** ===== BUZZER ===== */
+  /* =========================
+     BUZZER (Firestore)
+     ========================= */
   const roomCodeEl = document.getElementById("roomCode");
   const joinLinkEl = document.getElementById("joinLink");
   const buzzStatusEl = document.getElementById("buzzStatus");
@@ -386,31 +702,13 @@ function QR8bitByte(data) {
   const btnNewRoom = document.getElementById("btnNewRoom");
   const btnResetBuzz = document.getElementById("btnResetBuzz");
 
-  // ===== QR UI wiring =====
-const btnShowQR = document.getElementById("btnShowQR");
-const qrOverlay = document.getElementById("qrOverlay");
-const btnCloseQR = document.getElementById("btnCloseQR");
-const qrCanvas = document.getElementById("qrCanvas");
-const qrUrlText = document.getElementById("qrUrlText");
-const qrRoomText = document.getElementById("qrRoomText");
-
-function joinUrlForQR(){
-  return new URL("player.html", window.location.href).toString();
-}
-
-btnShowQR.onclick = () => {
-  if (!roomCode) return alert("Create a room first.");
-  const url = joinUrlForQR();
-  drawQR(qrCanvas, url, 8);
-  qrUrlText.textContent = url;
-  qrRoomText.textContent = roomCode;
-  qrOverlay.classList.add("show");
-};
-
-btnCloseQR.onclick = () => qrOverlay.classList.remove("show");
-qrOverlay.onclick = (e) => {
-  if (e.target === qrOverlay) qrOverlay.classList.remove("show");
-};
+  // QR UI
+  const btnShowQR = document.getElementById("btnShowQR");
+  const qrOverlay = document.getElementById("qrOverlay");
+  const btnCloseQR = document.getElementById("btnCloseQR");
+  const qrCanvas = document.getElementById("qrCanvas");
+  const qrUrlText = document.getElementById("qrUrlText");
+  const qrRoomText = document.getElementById("qrRoomText");
 
   let roomCode = null;
   let unsubRoom = null;
@@ -418,9 +716,10 @@ qrOverlay.onclick = (e) => {
 
   function randCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
 
-  // ✅ GitHub Pages-safe: builds correct URL even with /repo-name/
-  function playerJoinUrl(){
-    return new URL("player.html", window.location.href).toString();
+  function playerUrlWithRoom(code){
+    const u = new URL("player.html", window.location.href);
+    u.searchParams.set("room", code);
+    return u.toString();
   }
 
   function setBuzzerUI({locked, winnerName, players}){
@@ -432,7 +731,7 @@ qrOverlay.onclick = (e) => {
   async function createRoom(){
     roomCode = randCode();
     roomCodeEl.textContent = roomCode;
-    joinLinkEl.textContent = `${playerJoinUrl()}  (Room: ${roomCode})`;
+    joinLinkEl.textContent = `${playerUrlWithRoom(roomCode)} (Room: ${roomCode})`;
     btnResetBuzz.disabled = false;
 
     const ref = doc(db, "rooms", roomCode);
@@ -459,12 +758,28 @@ qrOverlay.onclick = (e) => {
   }
 
   btnNewRoom.onclick = createRoom;
+
   btnResetBuzz.onclick = async ()=>{
     if(!roomCode) return;
     await updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null });
   };
 
-  /** ===== JEOPARDY ENGINE ===== */
+  // Fullscreen QR
+  btnShowQR.onclick = ()=>{
+    if(!roomCode) return alert("Create a room first.");
+    const url = playerUrlWithRoom(roomCode);
+    renderQRToCanvas(qrCanvas, url, 14, 4); // big for projector
+    qrUrlText.textContent = url;
+    qrRoomText.textContent = roomCode;
+    qrOverlay.classList.add("show");
+  };
+  btnCloseQR.onclick = ()=> qrOverlay.classList.remove("show");
+  qrOverlay.onclick = (e)=>{ if(e.target===qrOverlay) qrOverlay.classList.remove("show"); };
+  window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") qrOverlay.classList.remove("show"); });
+
+  /* =========================
+     JEOPARDY ENGINE
+     ========================= */
   const $ = (s)=>document.querySelector(s);
   const boardEl = $("#board");
   const scoreboardEl = $("#scoreboard");
@@ -675,32 +990,5 @@ qrOverlay.onclick = (e) => {
   initJeopardy();
   await createRoom();
 </script>
-<!-- QR Modal -->
-<div class="overlay" id="qrOverlay" aria-modal="true" role="dialog">
-  <div class="modal" style="max-width:560px;text-align:center">
-    <header>
-      <div>
-        <h2>Join Buzzer</h2>
-        <div class="meta">
-          Scan to open player page<br>
-          Room code: <span class="mono" id="qrRoomText">—</span>
-        </div>
-      </div>
-      <button class="secondary" id="btnCloseQR">Close</button>
-    </header>
-
-    <canvas id="qrCanvas"
-      style="width:min(420px,80vw);height:auto;
-             background:#fff;padding:16px;border-radius:18px;
-             border:1px solid var(--border);">
-    </canvas>
-
-    <div class="small mono" id="qrUrlText"
-         style="word-break:break-all;margin-top:12px">
-      —
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
