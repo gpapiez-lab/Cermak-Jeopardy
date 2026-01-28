@@ -181,6 +181,16 @@
     getFirestore, doc, setDoc, updateDoc, onSnapshot,
     serverTimestamp, collection, query, onSnapshot as onSnapQuery
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+try {
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  await signInAnonymously(auth);
+  // continue...
+} catch (e) {
+  alert("Firebase init failed: " + (e?.code || e?.message || e));
+  throw e;
+}
 
   // ✅ YOUR CONFIG
   const firebaseConfig = {
