@@ -177,11 +177,10 @@
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div>
           <div style="font-weight:900">Firebase Buzzer</div>
-          <div class="small">Send players the join link + room code.</div>
+          <div class="small">Players join via QR code scan.</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <span class="pill">Room: <span class="mono" id="roomCode">—</span></span>
-          <button id="btnNewRoom">New Room</button>
+          <button id="btnNewRoom" style="display:none">New Room</button>
           <button class="secondary" id="btnShowQR">Show QR</button>
           <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
         </div>
@@ -281,17 +280,21 @@
       <div>
         <h2 style="font-size:20px;margin:0">Join Buzzer</h2>
         <div class="meta" style="margin-top:4px">
-          Scan this QR code → opens player page<br>
-          Room code: <span class="mono" id="qrRoomText">—</span>
+          Scan this QR code to join the game<br>
+          <span id="qrPlayerCount" style="font-weight:700;color:var(--accent)">Waiting for players... (0/4)</span>
         </div>
       </div>
-      <button class="secondary" id="btnCloseQR">Close</button>
+      <button class="secondary" id="btnCloseQR">Start Game</button>
     </header>
 
     <canvas id="qrCanvas"></canvas>
 
     <div class="small mono" id="qrUrlText" style="word-break:break-all;margin-top:14px;max-width:1200px">
       —
+    </div>
+    
+    <div id="qrPlayerList" style="margin-top:14px;font-size:14px;color:var(--muted)">
+      Players joined: <span id="qrPlayerNames">None yet</span>
     </div>
   </div>
 </div>
@@ -524,7 +527,8 @@ function makeQR(canvas, text) {
   const btnCloseQR = document.getElementById("btnCloseQR");
   const qrCanvas = document.getElementById("qrCanvas");
   const qrUrlText = document.getElementById("qrUrlText");
-  const qrRoomText = document.getElementById("qrRoomText");
+  const qrPlayerCount = document.getElementById("qrPlayerCount");
+  const qrPlayerNames = document.getElementById("qrPlayerNames");
 
   let roomCode = null;
   let unsubRoom = null;
@@ -550,8 +554,9 @@ function makeQR(canvas, text) {
 
   async function createRoom(){
     roomCode = randCode();
-    roomCodeEl.textContent = roomCode;
-    joinLinkEl.textContent = `${playerUrlWithRoom(roomCode)} (Room: ${roomCode})`;
+    // Hide room code from display (keep it for Firebase functionality)
+    roomCodeEl.textContent = ""; // Empty or hide the element
+    joinLinkEl.textContent = playerUrlWithRoom(roomCode); // Just show URL, no room code
     btnResetBuzz.disabled = false;
 
     const ref = doc(db, "rooms", roomCode);
@@ -560,6 +565,9 @@ function makeQR(canvas, text) {
     watchRoom(roomCode);
     setBuzzerUI({locked:false, winnerName:null, players:[]});
   }
+
+  let currentPlayers = []; // Track current players
+  const MAX_PLAYERS = 4;
 
   function watchRoom(code){
     unsubRoom?.(); unsubPlayers?.();
@@ -573,8 +581,54 @@ function makeQR(canvas, text) {
     unsubPlayers = onSnapQuery(query(collection(db,"rooms",code,"players")), (qs)=>{
       const names=[];
       qs.forEach(s=>names.push(s.data()?.name || "?"));
+      currentPlayers = names; // Update current players list
       setBuzzerUI({ players: names });
+      
+      // Update QR modal display
+      if (qrPlayerCount) {
+        qrPlayerCount.textContent = `${names.length}/${MAX_PLAYERS} players joined`;
+        if (names.length >= MAX_PLAYERS) {
+          qrPlayerCount.textContent = `All players joined! (${MAX_PLAYERS}/${MAX_PLAYERS})`;
+          qrPlayerCount.style.color = 'var(--good)';
+        }
+      }
+      if (qrPlayerNames) {
+        qrPlayerNames.textContent = names.length > 0 ? names.join(', ') : 'None yet';
+      }
+      
+      // Update button text based on player count
+      if (btnCloseQR) {
+        if (names.length > 0) {
+          btnCloseQR.textContent = 'Start Game';
+          btnCloseQR.disabled = false;
+        } else {
+          btnCloseQR.textContent = 'Waiting for players...';
+          btnCloseQR.disabled = true;
+        }
+      }
+      
+      // Auto-close QR screen when max players reached
+      if (names.length >= MAX_PLAYERS && qrOverlay.classList.contains('show')) {
+        setTimeout(() => {
+          closeQRAndStartGame(names);
+        }, 1000); // Small delay to show "All players joined" message
+      }
     });
+  }
+  
+  function closeQRAndStartGame(playerNames) {
+    // Close QR overlay
+    qrOverlay.classList.remove('show');
+    
+    // Use player names as teams
+    if (playerNames.length > 0) {
+      GAME.teams = playerNames.slice(0, MAX_PLAYERS); // Limit to max players
+      initJeopardy();
+      console.log('Game started with teams:', GAME.teams);
+    } else {
+      // Fallback if no players (shouldn't happen, but just in case)
+      alert('No players joined. Please try again.');
+    }
   }
 
   btnNewRoom.onclick = createRoom;
@@ -584,37 +638,71 @@ function makeQR(canvas, text) {
     await updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null });
   };
 
-  // Fullscreen QR
-btnShowQR.onclick = () => {
-  if (!roomCode) return alert("Create a room first.");
+  // Function to show QR code
+  function showQRCode() {
+    if (!roomCode) {
+      console.error("No room code available");
+      return;
+    }
 
-  // Check if QRCode library is loaded
-  if (typeof QRCode === 'undefined') {
-    console.error("QRCode library not found. Available globals:", Object.keys(window).filter(k => k.toLowerCase().includes('qr')));
-    alert("QR Code library not loaded. Please refresh the page.\n\nIf the problem persists, check your internet connection.");
-    return;
+    // Check if QRCode library is loaded
+    if (typeof QRCode === 'undefined') {
+      console.error("QRCode library not found");
+      alert("QR Code library not loaded. Please refresh the page.");
+      return;
+    }
+
+    const url = playerUrlWithRoom(roomCode);
+    qrUrlText.textContent = url;
+    
+    // Reset player count display
+    if (qrPlayerCount) {
+      qrPlayerCount.textContent = "Waiting for players... (0/4)";
+      qrPlayerCount.style.color = 'var(--accent)';
+    }
+    if (qrPlayerNames) {
+      qrPlayerNames.textContent = 'None yet';
+    }
+    if (btnCloseQR) {
+      btnCloseQR.textContent = 'Waiting for players...';
+      btnCloseQR.disabled = true;
+    }
+
+    qrOverlay.classList.add("show");
+
+    // Wait for layout to settle, then draw QR code
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          makeQR(qrCanvas, url);
+        });
+      });
+    }, 150);
   }
 
-  const url = playerUrlWithRoom(roomCode);
-  qrUrlText.textContent = url;
-  qrRoomText.textContent = roomCode;
+  // Fullscreen QR (for manual use later)
+  btnShowQR.onclick = showQRCode;
 
-  qrOverlay.classList.add("show");
-
-  // Wait for layout to settle, then draw QR code
-  // Use multiple delays to ensure everything is ready
-  setTimeout(() => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        makeQR(qrCanvas, url);
-      });
-    });
-  }, 150);
-};
-
-  btnCloseQR.onclick = ()=> qrOverlay.classList.remove("show");
-  qrOverlay.onclick = (e)=>{ if(e.target===qrOverlay) qrOverlay.classList.remove("show"); };
-  window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") qrOverlay.classList.remove("show"); });
+  btnCloseQR.onclick = ()=> {
+    if (currentPlayers.length > 0) {
+      closeQRAndStartGame(currentPlayers);
+    } else {
+      // Don't allow closing if no players
+      return;
+    }
+  };
+  qrOverlay.onclick = (e)=>{ 
+    // Don't close on overlay click - require button click
+    e.stopPropagation();
+  };
+  window.addEventListener("keydown",(e)=>{ 
+    if(e.key==="Escape" && qrOverlay.classList.contains("show")) {
+      if (currentPlayers.length > 0) {
+        closeQRAndStartGame(currentPlayers);
+      }
+      // If no players, don't allow closing
+    }
+  });
 
   /* =========================
      JEOPARDY ENGINE
@@ -875,7 +963,7 @@ btnShowQR.onclick = () => {
     const startButton = document.getElementById('startButton');
     const splashScreen = document.getElementById('splashScreen');
     if (startButton && splashScreen) {
-      startButton.onclick = () => {
+      startButton.onclick = async () => {
         // Set flag to allow game initialization
         gameStarted = true;
         
@@ -883,11 +971,13 @@ btnShowQR.onclick = () => {
         splashScreen.classList.add('hidden');
         document.body.classList.add('game-started');
         
-        // Now initialize the game (setup teams, etc.)
-        // This is the ONLY place setupTeams() should be called
-        setupTeams();
-        initJeopardy();
-        createRoom();
+        // Create room first, then show QR code
+        await createRoom();
+        
+        // Show QR code immediately after room is created
+        setTimeout(() => {
+          showQRCode();
+        }, 300);
       };
     }
   }
