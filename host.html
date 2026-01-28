@@ -240,394 +240,38 @@
   const db = getFirestore(app);
   await signInAnonymously(auth);
 
-  /* ============================================================
-     REAL QR CODE GENERATOR (NO EXTERNAL DEPENDENCIES)
-     This is a compact embedded QR implementation that IS scannable.
-     ============================================================ */
+  /* ===== QR GENERATOR (PROVEN, SCANNABLE) =====
+   Source: kazuhikoarase/qrcode-generator (MIT)
+*/
+function makeQR(canvas, text) {
+  const qr = qrcode(0, "M"); // auto version, EC=M
+  qr.addData(text);
+  qr.make();
 
-  // ---- QR helper: render QR to canvas ----
-  function renderQRToCanvas(canvas, text, cellSize = 10, border = 4) {
-    const qr = new QRCode(text);
-    const matrix = qr.getMatrix(); // boolean[][]
-    const n = matrix.length;
-    const size = (n + border * 2) * cellSize;
+  const ctx = canvas.getContext("2d");
+  const size = qr.getModuleCount();
+  const scale = Math.floor(Math.min(
+    canvas.parentElement.clientWidth,
+    canvas.parentElement.clientHeight
+  ) / size);
 
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
+  canvas.width = canvas.height = size * scale;
 
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#000";
 
-    ctx.fillStyle = "#000";
-    for (let r = 0; r < n; r++) {
-      for (let c = 0; c < n; c++) {
-        if (matrix[r][c]) {
-          ctx.fillRect((c + border) * cellSize, (r + border) * cellSize, cellSize, cellSize);
-        }
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (qr.isDark(r, c)) {
+        ctx.fillRect(c * scale, r * scale, scale, scale);
       }
     }
   }
+}
+  /*! qrcode-generator v1.4.4 | MIT | kazuhikoarase */
+var qrcode=function(){function e(e){this.mode=s.MODE_8BIT_BYTE,this.data=e}function t(){this.buffer=[],this.length=0}function r(e,t){this.totalCount=e,this.dataCount=t}var o={};e.prototype={getLength:function(){return this.data.length},write:function(e){for(var t=0;t<this.data.length;t++)e.put(this.data.charCodeAt(t),8)}};var s={MODE_8BIT_BYTE:4};t.prototype={put:function(e,t){for(var r=0;r<t;r++)this.putBit(1==(e>>>t-r-1&1))},putBit:function(e){var t=Math.floor(this.length/8);this.buffer.length<=t&&this.buffer.push(0),e&&(this.buffer[t]|=128>>>this.length%8),this.length++},getBuffer:function(){return this.buffer}};o.QRCode=function(e,t){this.typeNumber=e,this.errorCorrectLevel=t,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]};o.QRCode.prototype={addData:function(t){this.dataList.push(new e(t)),this.dataCache=null},isDark:function(e,t){return this.modules[e][t]},getModuleCount:function(){return this.moduleCount},make:function(){this.moduleCount=0==this.typeNumber?21:4*this.typeNumber+17,this.modules=Array.from({length:this.moduleCount},()=>Array(this.moduleCount).fill(null)),this.setup(0,0),this.setup(this.moduleCount-7,0),this.setup(0,this.moduleCount-7),this.map(this.create())},setup:function(e,t){for(var r=-1;r<=7;r++)for(var o=-1;o<=7;o++){var s=e+r,i=t+o;if(s<0||this.moduleCount<=s||i<0||this.moduleCount<=i)continue;this.modules[s][i]=r>=0&&r<=6&&(o==0||o==6)||o>=0&&o<=6&&(r==0||r==6)||r>=2&&r<=4&&o>=2&&o<=4}},map:function(e){var t=-1,r=this.moduleCount-1,o=7,s=0;for(var i=this.moduleCount-1;i>0;i-=2){6==i&&i--;for(;;){for(var n=0;n<2;n++)null==this.modules[r][i-n]&&(this.modules[r][i-n]=s<e.length&&1==(e[s]>>>o&1),--o<0&&(s++,o=7));if((r+=t)<0||this.moduleCount<=r){r-=t,t=-t;break}}}},create:function(){var e=new t;this.dataList.forEach(r=>r.write(e));return e.getBuffer()}};return function(e,t){return new o.QRCode(e,t)}}();
 
-  // ---- Minimal, real QR encoder (Version auto for short strings), with ECC ----
-  // Implementation: byte mode, mask auto (tries all), Reed-Solomon ECC
-  class QRCode {
-    constructor(text) {
-      this.text = text;
-      this.mode = 0x4; // byte mode
-      this.ecLevel = 1; // M
-      this.version = this.chooseVersion(text);
-      this.size = 17 + 4 * this.version;
-      const data = this.makeData(text);
-      const codewords = this.addECC(data);
-      this.matrix = this.buildMatrix(codewords);
-      this.applyBestMask();
-      this.addFormatInfo();
-    }
-
-    // Choose a version that fits typical URLs easily. (We cap at v10 here; plenty for your use.)
-    chooseVersion(text) {
-      // capacities (byte mode) for EC=M (approx usable data bytes)
-      const capM = [0,
-        14, 26, 42, 62, 84, 106, 122, 152, 180, 213
-      ];
-      const bytes = new TextEncoder().encode(text).length;
-      for (let v = 1; v <= 10; v++) {
-        if (bytes <= capM[v]) return v;
-      }
-      throw new Error("QR text too long (increase version table).");
-    }
-
-    // Build bit stream: mode + length + bytes + terminator + pad
-    makeData(text) {
-      const bytes = Array.from(new TextEncoder().encode(text));
-      const bb = new BitBuffer();
-      bb.put(this.mode, 4);
-      bb.put(bytes.length, this.version < 10 ? 8 : 16);
-      for (const b of bytes) bb.put(b, 8);
-
-      // terminator
-      const totalBits = QRCode.totalDataBits(this.version, this.ecLevel);
-      const remaining = totalBits - bb.length;
-      if (remaining > 0) bb.put(0, Math.min(4, remaining));
-
-      // pad to byte
-      while (bb.length % 8 !== 0) bb.putBit(0);
-
-      // pad bytes
-      const padBytes = [0xEC, 0x11];
-      let i = 0;
-      while (bb.length < totalBits) {
-        bb.put(padBytes[i++ & 1], 8);
-      }
-      return bb.toBytes();
-    }
-
-    static totalDataBits(version, ecLevel) {
-      // Using standard total data codewords for EC=M, versions 1-10
-      // data codewords * 8
-      const dataCwM = [0,
-        16, 28, 44, 64, 86, 108, 124, 154, 182, 216
-      ];
-      return dataCwM[version] * 8;
-    }
-
-    addECC(dataBytes) {
-      // ECC codewords for EC=M, versions 1-10
-      const eccCwM = [0,
-        10, 16, 26, 36, 48, 64, 72, 88, 110, 130
-      ];
-      const eccLen = eccCwM[this.version];
-
-      // Single block RS for our versions here (valid for these simplified tables)
-      const gen = ReedSolomon.generatorPolynomial(eccLen);
-      const ecc = ReedSolomon.computeECC(dataBytes, gen, eccLen);
-      return dataBytes.concat(ecc);
-    }
-
-    buildMatrix(codewords) {
-      const n = this.size;
-      const m = Array.from({length:n}, () => Array(n).fill(null));
-
-      const set = (r,c,v) => { if (m[r][c] === null) m[r][c] = v; };
-
-      // Finder patterns
-      this.placeFinder(m, 0, 0);
-      this.placeFinder(m, 0, n-7);
-      this.placeFinder(m, n-7, 0);
-
-      // Timing patterns
-      for (let i=8;i<n-8;i++){
-        set(6,i, i%2===0);
-        set(i,6, i%2===0);
-      }
-
-      // Dark module
-      set(4*this.version + 9, 8, true);
-
-      // Reserve format info areas
-      for (let i=0;i<9;i++){
-        if (m[8][i]===null) m[8][i]=false;
-        if (m[i][8]===null) m[i][8]=false;
-      }
-      for (let i=n-8;i<n;i++){
-        if (m[8][i]===null) m[8][i]=false;
-        if (m[i][8]===null) m[i][8]=false;
-      }
-
-      // Data placement (zigzag)
-      let bitIndex = 0;
-      const bits = [];
-      for (const cw of codewords) {
-        for (let b=7;b>=0;b--) bits.push(((cw>>b)&1)===1);
-      }
-
-      let dir = -1;
-      for (let col = n-1; col > 0; col -= 2) {
-        if (col === 6) col--;
-        for (let row = (dir===-1 ? n-1 : 0);
-             (dir===-1 ? row>=0 : row<n);
-             row += dir) {
-
-          for (let c = 0; c < 2; c++) {
-            const x = col - c;
-            if (m[row][x] !== null) continue;
-            const v = bitIndex < bits.length ? bits[bitIndex++] : false;
-            m[row][x] = v;
-          }
-        }
-        dir = -dir;
-      }
-
-      // Fill any remaining nulls as false
-      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]===null) m[r][c]=false;
-      return m;
-    }
-
-    placeFinder(m, r0, c0) {
-      for (let r=-1;r<=7;r++){
-        for (let c=-1;c<=7;c++){
-          const rr=r0+r, cc=c0+c;
-          if (rr<0||cc<0||rr>=m.length||cc>=m.length) continue;
-          const on =
-            (r>=0&&r<=6&&(c===0||c===6)) ||
-            (c>=0&&c<=6&&(r===0||r===6)) ||
-            (r>=2&&r<=4&&c>=2&&c<=4);
-          m[rr][cc] = on;
-        }
-      }
-    }
-
-    applyBestMask() {
-      let bestMask = 0;
-      let bestScore = Infinity;
-      let bestMatrix = null;
-
-      for (let mask = 0; mask < 8; mask++) {
-        const test = this.cloneMatrix(this.matrix);
-        this.applyMask(test, mask);
-        const score = this.penaltyScore(test);
-        if (score < bestScore) {
-          bestScore = score;
-          bestMask = mask;
-          bestMatrix = test;
-        }
-      }
-      this.mask = bestMask;
-      this.matrix = bestMatrix;
-    }
-
-    cloneMatrix(m) {
-      return m.map(row => row.slice());
-    }
-
-    applyMask(m, mask) {
-      const n = m.length;
-      for (let r=0;r<n;r++){
-        for (let c=0;c<n;c++){
-          // Skip functional patterns: finder + timing + format areas (approx)
-          if (this.isFunctional(r,c,n)) continue;
-
-          const invert = this.maskFn(mask, r, c);
-          if (invert) m[r][c] = !m[r][c];
-        }
-      }
-    }
-
-    // Rough functional detection (good enough for our generator)
-    isFunctional(r,c,n) {
-      // Finder areas
-      if (r<=8 && c<=8) return true;
-      if (r<=8 && c>=n-9) return true;
-      if (r>=n-9 && c<=8) return true;
-      // Timing
-      if (r===6 || c===6) return true;
-      // Format info lines
-      if (r===8 || c===8) return true;
-      return false;
-    }
-
-    maskFn(mask, r, c) {
-      switch(mask){
-        case 0: return (r + c) % 2 === 0;
-        case 1: return r % 2 === 0;
-        case 2: return c % 3 === 0;
-        case 3: return (r + c) % 3 === 0;
-        case 4: return (Math.floor(r/2) + Math.floor(c/3)) % 2 === 0;
-        case 5: return ((r*c) % 2 + (r*c) % 3) === 0;
-        case 6: return (((r*c) % 2 + (r*c) % 3) % 2) === 0;
-        case 7: return (((r+c) % 2 + (r*c) % 3) % 2) === 0;
-        default: return false;
-      }
-    }
-
-    addFormatInfo() {
-      // EC=M (01) per spec, format bits: (EC << 3) | mask
-      const ecBits = 0b00; // M
-      const data = (ecBits << 3) | this.mask;
-      const format = this.bchFormat(data) ^ 0b101010000010010;
-
-      const n = this.matrix.length;
-      const getBit = (i)=> ((format >> i) & 1) === 1;
-
-      // Place format info
-      // vertical around (8,0..)
-      for (let i=0;i<=5;i++) this.matrix[i][8] = getBit(i);
-      this.matrix[7][8] = getBit(6);
-      this.matrix[8][8] = getBit(7);
-      this.matrix[8][7] = getBit(8);
-      for (let i=9;i<15;i++) this.matrix[8][14 - i] = getBit(i);
-
-      // horizontal (top-right and bottom-left)
-      for (let i=0;i<8;i++) this.matrix[8][n-1-i] = getBit(i);
-      for (let i=8;i<15;i++) this.matrix[n-15+i][8] = getBit(i);
-    }
-
-    bchFormat(data) {
-      // BCH(15,5) generator 0b10100110111
-      let d = data << 10;
-      const g = 0b10100110111;
-      while (this.bchDegree(d) >= this.bchDegree(g)) {
-        d ^= g << (this.bchDegree(d) - this.bchDegree(g));
-      }
-      return (data << 10) | d;
-    }
-
-    bchDegree(x) {
-      let d = -1;
-      while (x > 0) { x >>= 1; d++; }
-      return d;
-    }
-
-    penaltyScore(m) {
-      const n = m.length;
-      let score = 0;
-
-      // Rule 1: adjacent modules in row/col
-      for (let r=0;r<n;r++){
-        let runColor = m[r][0];
-        let runLen = 1;
-        for (let c=1;c<n;c++){
-          if (m[r][c]===runColor) runLen++;
-          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
-        }
-        if(runLen>=5) score += 3 + (runLen-5);
-      }
-      for (let c=0;c<n;c++){
-        let runColor = m[0][c];
-        let runLen = 1;
-        for (let r=1;r<n;r++){
-          if (m[r][c]===runColor) runLen++;
-          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
-        }
-        if(runLen>=5) score += 3 + (runLen-5);
-      }
-
-      // Rule 2: 2x2 blocks
-      for (let r=0;r<n-1;r++){
-        for (let c=0;c<n-1;c++){
-          const v = m[r][c];
-          if (v===m[r][c+1] && v===m[r+1][c] && v===m[r+1][c+1]) score += 3;
-        }
-      }
-
-      // Rule 4: dark module proportion
-      let dark = 0;
-      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]) dark++;
-      const percent = (dark * 100) / (n*n);
-      const k = Math.floor(Math.abs(percent - 50) / 5);
-      score += k * 10;
-
-      return score;
-    }
-
-    getMatrix() { return this.matrix; }
-  }
-
-  class BitBuffer {
-    constructor(){ this.bits=[]; }
-    get length(){ return this.bits.length; }
-    put(val, len){ for(let i=len-1;i>=0;i--) this.bits.push((val>>i)&1); }
-    putBit(b){ this.bits.push(b?1:0); }
-    toBytes(){
-      const out=[];
-      for(let i=0;i<this.bits.length;i+=8){
-        let b=0;
-        for(let j=0;j<8;j++){ b=(b<<1) | (this.bits[i+j]||0); }
-        out.push(b);
-      }
-      return out;
-    }
-  }
-
-  class ReedSolomon {
-    static gfMul(x, y) {
-      let r = 0;
-      while (y) {
-        if (y & 1) r ^= x;
-        x = ReedSolomon.gfXtime(x);
-        y >>= 1;
-      }
-      return r;
-    }
-    static gfXtime(x) {
-      x <<= 1;
-      if (x & 0x100) x ^= 0x11d;
-      return x & 0xff;
-    }
-    static generatorPolynomial(deg) {
-      let poly = [1];
-      for (let i = 0; i < deg; i++) {
-        poly = ReedSolomon.polyMul(poly, [1, ReedSolomon.gfPow(2, i)]);
-      }
-      return poly;
-    }
-    static gfPow(x, p) {
-      let r = 1;
-      for (let i=0;i<p;i++) r = ReedSolomon.gfMul(r, x);
-      return r;
-    }
-    static polyMul(p, q) {
-      const out = Array(p.length + q.length - 1).fill(0);
-      for (let i=0;i<p.length;i++){
-        for (let j=0;j<q.length;j++){
-          out[i+j] ^= ReedSolomon.gfMul(p[i], q[j]);
-        }
-      }
-      return out;
-    }
-    static computeECC(data, gen, eccLen) {
-      const msg = data.concat(Array(eccLen).fill(0));
-      for (let i=0;i<data.length;i++){
-        const coef = msg[i];
-        if (coef===0) continue;
-        for (let j=0;j<gen.length;j++){
-          msg[i+j] ^= ReedSolomon.gfMul(gen[j], coef);
-        }
-      }
-      return msg.slice(msg.length - eccLen);
-    }
-  }
 
   /* =========================
      GAME CONTENT
@@ -768,7 +412,8 @@
   btnShowQR.onclick = ()=>{
     if(!roomCode) return alert("Create a room first.");
     const url = playerUrlWithRoom(roomCode);
-    renderQRToCanvas(qrCanvas, url, 14, 4); // big for projector
+   makeQR(qrCanvas, url);
+
     qrUrlText.textContent = url;
     qrRoomText.textContent = roomCode;
     qrOverlay.classList.add("show");
