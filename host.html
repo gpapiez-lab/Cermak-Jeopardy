@@ -276,7 +276,7 @@
 <!-- QR Modal (Fullscreen) -->
 <div class="overlay" id="qrOverlay" aria-modal="true" role="dialog">
   <div class="modal" id="qrModal">
-    <header style="width:100%;max-width:1200px">
+    <header style="width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px">
       <div>
         <h2 style="font-size:20px;margin:0">Join Buzzer</h2>
         <div class="meta" style="margin-top:4px">
@@ -284,7 +284,7 @@
           <span id="qrPlayerCount" style="font-weight:700;color:var(--accent)">Waiting for players... (0/4)</span>
         </div>
       </div>
-      <button class="secondary" id="btnCloseQR">Start Game</button>
+      <button class="secondary" id="btnCloseQR" style="flex-shrink:0;min-width:120px;padding:12px 24px;font-size:16px;font-weight:700">Close</button>
     </header>
 
     <canvas id="qrCanvas"></canvas>
@@ -587,63 +587,78 @@ function makeQR(canvas, text) {
       setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName ?? null });
     });
 
-    unsubPlayers = onSnapQuery(query(collection(db,"rooms",code,"players")), (qs)=>{
+    const playersRef = collection(db, "rooms", code, "players");
+    console.log('Setting up listener for players collection:', `rooms/${code}/players`);
+    
+    unsubPlayers = onSnapQuery(query(playersRef), (qs)=>{
       console.log('Firebase players query result:', qs.size, 'players');
       const names=[];
-      qs.forEach(s=>{
-        const playerData = s.data();
-        console.log('Player data:', playerData);
+      qs.forEach((docSnap)=>{
+        const playerData = docSnap.data();
+        const playerId = docSnap.id;
+        console.log('Player document ID:', playerId, 'Data:', playerData);
         if (playerData && playerData.name) {
           names.push(playerData.name);
         }
       });
       
-      console.log('Players updated:', names); // Debug log
+      console.log('Players updated:', names, 'Total:', names.length); // Debug log
       currentPlayers = names; // Update current players list
       setBuzzerUI({ players: names });
       
-      // Update QR modal display - ensure elements exist
-      const qrPlayerCountEl = document.getElementById("qrPlayerCount");
-      const qrPlayerNamesEl = document.getElementById("qrPlayerNames");
-      const btnCloseQREl = document.getElementById("btnCloseQR");
-      
-      if (qrPlayerCountEl) {
-        qrPlayerCountEl.textContent = `${names.length}/${MAX_PLAYERS} players joined`;
-        if (names.length >= MAX_PLAYERS) {
-          qrPlayerCountEl.textContent = `All players joined! (${MAX_PLAYERS}/${MAX_PLAYERS})`;
-          qrPlayerCountEl.style.color = 'var(--good)';
+      // Force update QR modal display
+      requestAnimationFrame(() => {
+        const qrPlayerCountEl = document.getElementById("qrPlayerCount");
+        const qrPlayerNamesEl = document.getElementById("qrPlayerNames");
+        const btnCloseQREl = document.getElementById("btnCloseQR");
+        
+        console.log('Updating QR display elements:', {
+          qrPlayerCountEl: !!qrPlayerCountEl,
+          qrPlayerNamesEl: !!qrPlayerNamesEl,
+          btnCloseQREl: !!btnCloseQREl,
+          names: names
+        });
+        
+        if (qrPlayerCountEl) {
+          qrPlayerCountEl.textContent = `${names.length}/${MAX_PLAYERS} players joined`;
+          if (names.length >= MAX_PLAYERS) {
+            qrPlayerCountEl.textContent = `All players joined! (${MAX_PLAYERS}/${MAX_PLAYERS})`;
+            qrPlayerCountEl.style.color = 'var(--good)';
+          } else {
+            qrPlayerCountEl.style.color = 'var(--accent)';
+          }
         } else {
-          qrPlayerCountEl.style.color = 'var(--accent)';
+          console.error('qrPlayerCount element not found!');
         }
-      } else {
-        console.warn('qrPlayerCount element not found');
-      }
-      
-      if (qrPlayerNamesEl) {
-        qrPlayerNamesEl.textContent = names.length > 0 ? names.join(', ') : 'None yet';
-      } else {
-        console.warn('qrPlayerNames element not found');
-      }
-      
-      // Update button text based on player count
-      if (btnCloseQREl) {
-        if (names.length > 0) {
-          btnCloseQREl.textContent = 'Start Game';
-          btnCloseQREl.disabled = false;
+        
+        if (qrPlayerNamesEl) {
+          qrPlayerNamesEl.textContent = names.length > 0 ? names.join(', ') : 'None yet';
         } else {
-          btnCloseQREl.textContent = 'Close';
-          btnCloseQREl.disabled = false; // Allow closing even without players
+          console.error('qrPlayerNames element not found!');
         }
-      } else {
-        console.warn('btnCloseQR element not found');
-      }
-      
-      // Auto-close QR screen when max players reached
-      if (names.length >= MAX_PLAYERS && qrOverlay && qrOverlay.classList.contains('show')) {
-        setTimeout(() => {
-          closeQRAndStartGame(names);
-        }, 1000); // Small delay to show "All players joined" message
-      }
+        
+        // Update button text based on player count
+        if (btnCloseQREl) {
+          if (names.length > 0) {
+            btnCloseQREl.textContent = 'Start Game';
+            btnCloseQREl.disabled = false;
+            btnCloseQREl.style.display = 'block'; // Ensure visible
+          } else {
+            btnCloseQREl.textContent = 'Close';
+            btnCloseQREl.disabled = false; // Allow closing even without players
+            btnCloseQREl.style.display = 'block'; // Ensure visible
+          }
+        } else {
+          console.error('btnCloseQR element not found!');
+        }
+        
+        // Auto-close QR screen when max players reached
+        if (names.length >= MAX_PLAYERS && qrOverlay && qrOverlay.classList.contains('show')) {
+          setTimeout(() => {
+            closeQRAndStartGame(names);
+          }, 1000); // Small delay to show "All players joined" message
+        }
+      });
     }, (error) => {
       console.error('Error watching players:', error);
     });
@@ -720,18 +735,42 @@ function makeQR(canvas, text) {
   // Fullscreen QR (for manual use later)
   btnShowQR.onclick = showQRCode;
 
-  btnCloseQR.onclick = ()=> {
-    // Host can always close QR screen
-    if (currentPlayers.length > 0) {
-      // Start game with current players
-      closeQRAndStartGame(currentPlayers);
+  // Set up close button handler - ensure it's set up properly
+  function setupCloseButton() {
+    const closeBtn = document.getElementById("btnCloseQR");
+    if (closeBtn) {
+      // Remove any existing handlers
+      closeBtn.onclick = null;
+      // Add new handler
+      closeBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Close button clicked, current players:', currentPlayers);
+        
+        // Host can always close QR screen
+        if (currentPlayers.length > 0) {
+          // Start game with current players
+          console.log('Starting game with players:', currentPlayers);
+          closeQRAndStartGame(currentPlayers);
+        } else {
+          // Just close QR screen, don't start game yet
+          console.log('Closing QR screen without players');
+          qrOverlay.classList.remove("show");
+          // Show message that they need players
+          alert('No players have joined yet. Please wait for players to join via QR code, or try scanning again.');
+        }
+      };
+      console.log('Close button handler set up successfully');
     } else {
-      // Just close QR screen, don't start game yet
-      qrOverlay.classList.remove("show");
-      // Show message that they need players
-      alert('No players have joined yet. The game will start once players join via QR code.');
+      console.error('btnCloseQR element not found when setting up handler!');
     }
-  };
+  }
+  
+  // Set up immediately and also after DOM is ready
+  setupCloseButton();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCloseButton);
+  }
   qrOverlay.onclick = (e)=>{ 
     // Don't close on overlay click - require button click
     e.stopPropagation();
