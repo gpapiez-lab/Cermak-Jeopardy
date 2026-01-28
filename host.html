@@ -94,7 +94,7 @@
     }
     #startButton {
       position: absolute;
-      bottom: 15%;
+      bottom: 5%;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(180deg, #f7c948, #d4a83a);
@@ -869,19 +869,22 @@ btnShowQR.onclick = () => {
         splashScreen.classList.add('hidden');
         document.body.classList.add('game-started');
         
-        // Start theme music
-        playSound('theme');
+        // Now initialize the game (setup teams, etc.)
+        setupTeams();
+        initJeopardy();
+        createRoom();
       };
     }
   }
 
-  // START - Initialize game but keep it hidden until start button is clicked
-  setupTeams();
-  initJeopardy();
-  await createRoom();
-  
-  // Bind UI including start button
+  // START - Play theme music when splash screen appears
+  // Don't initialize game until start button is clicked
   bindUI();
+  
+  // Start theme music when page loads (splash screen is showing)
+  setTimeout(() => {
+    playSound('theme');
+  }, 500);
 </script>
 </body>
 </html>
