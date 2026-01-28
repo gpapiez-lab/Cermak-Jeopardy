@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Buzz In</title>
+  <style>
+    body{font-family:system-ui;margin:18px;max-width:520px}
+    input,button{width:100%;padding:14px 12px;font-size:18px;margin:8px 0}
+    #buzz{font-size:30px;font-weight:900;padding:26px;border-radius:14px}
+    .muted{color:#666}
+    .big{font-size:22px;font-weight:800}
+  </style>
+</head>
+<body>
+  <h1>Buzz In</h1>
+
+  <div id="join">
+    <input id="room" placeholder="Room code (e.g. 1234)" />
+    <input id="name" placeholder="Your name" maxlength="24" />
+    <button id="joinBtn">Join</button>
+    <div class="muted">Enter the room code shown on the host screen.</div>
+  </div>
+
+  <div id="game" style="display:none">
+    <div class="muted">Status:</div>
+    <div id="status" class="big">Ready</div>
+    <button id="buzz">BUZZ!</button>
+    <div class="muted" id="note"></div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, doc, setDoc, updateDoc, onSnapshot,
+    serverTimestamp, runTransaction
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  // 🔥 REPLACE THIS
+  const firebaseConfig = {
+    YOUR_FIREBASE_CONFIG_HERE
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  await signInAnonymously(auth);
+
+  const joinDiv=document.getElementById("join");
+  const gameDiv=document.getElementById("game");
+  const roomEl=document.getElementById("room");
+  const nameEl=document.getElementById("name");
+  const joinBtn=document.getElementById("joinBtn");
+  const buzzBtn=document.getElementById("buzz");
+  const statusEl=document.getElementById("status");
+  const noteEl=document.getElementById("note");
+
+  let roomCode=null;
+  let playerName=null;
+  let unsub=null;
+
+  function setState(locked, winnerName){
+    if(locked){
+      statusEl.textContent = winnerName ? `Locked — ${winnerName} buzzed first` : "Locked";
+      buzzBtn.disabled = true;
+      noteEl.textContent = "Wait for host to reset.";
+    } else {
+      statusEl.textContent = "Ready";
+      buzzBtn.disabled = false;
+      noteEl.textContent = "";
+    }
+  }
+
+  joinBtn.onclick = async ()=>{
+    roomCode = roomEl.value.trim().toUpperCase();
+    playerName = nameEl.value.trim().slice(0,24);
+    if(!roomCode || !playerName) return alert("Enter room code and name");
+
+    // register player
+    await setDoc(doc(db,"rooms",roomCode,"players",auth.currentUser.uid), {
+      name: playerName,
+      updatedAt: serverTimestamp()
+    }, { merge:true });
+
+    // watch room state
+    unsub?.();
+    unsub = onSnapshot(doc(db,"rooms",roomCode), (snap)=>{
+      if(!snap.exists()){ setState(false,null); return; }
+      const d=snap.data();
+      setState(!!d.locked, d.winnerName || null);
+    });
+
+    joinDiv.style.display="none";
+    gameDiv.style.display="block";
+  };
+
+  buzzBtn.onclick = async ()=>{
+    if(!roomCode || !playerName) return;
+
+    buzzBtn.disabled = true;
+
+    // Transaction: only first buzz sets the winner
+    try{
+      await runTransaction(db, async (tx)=>{
+        const ref = doc(db,"rooms",roomCode);
+        const snap = await tx.get(ref);
+        if(!snap.exists()) throw new Error("Room not found");
+        const d = snap.data();
+        if(d.winnerUid) return; // already locked
+        tx.update(ref, { locked:true, winnerUid: auth.currentUser.uid, winnerName: playerName });
+      });
+    } catch(e){
+      // ignore; room might already be locked
+    }
+
+    setTimeout(()=>buzzBtn.disabled=false, 400);
+  };
+</script>
+</body>
+</html>
