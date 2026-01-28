@@ -1,994 +1,134 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Jeopardy + Firebase Buzzer</title>
-  <style>
-    :root{--bg:#0b1020;--panel:#111a33;--tile:#17306e;--tile2:#10265c;--accent:#f7c948;--text:#e9eefc;--muted:#a9b5d6;--danger:#ff5d5d;--good:#46d39a;--border:rgba(255,255,255,.12);--shadow:0 10px 30px rgba(0,0,0,.35);--radius:16px;--font:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:var(--font);background:radial-gradient(1200px 800px at 20% 10%, #1a2a66 0%, var(--bg) 50%, #070a14 100%);color:var(--text);min-height:100vh;padding:18px;}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 auto 14px;max-width:1200px;}
-    h1{font-size:20px;margin:0;letter-spacing:.5px}
-    .sub{color:var(--muted);font-size:13px}
-    .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-    button{background:linear-gradient(180deg,#1c2f72,#13265e);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:10px 14px;cursor:pointer;box-shadow:var(--shadow);font-weight:600;}
-    button:hover{filter:brightness(1.06)} button:active{transform:translateY(1px)}
-    button.secondary{background:transparent;box-shadow:none}
-    button.danger{background:linear-gradient(180deg,#7a1b1b,#4a0f0f)}
-    button.good{background:linear-gradient(180deg,#146b4b,#0b3d2a)}
-    main{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:14px;}
-    .row2{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
-    @media (max-width:980px){.row2{grid-template-columns:1fr}}
-    .panel{background:rgba(17,26,51,.78);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);}
-    .scoreboard{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-    .teams{display:flex;gap:10px;flex-wrap:wrap}
-    .team{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:14px;padding:10px 12px;min-width:180px;}
-    .team .name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}
-    .team .score{font-size:20px;color:var(--accent)}
-    .team .adj{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-    .board{display:grid;gap:10px;background:rgba(17,26,51,.55);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);overflow:auto;}
-    .cell{border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,var(--tile),var(--tile2));padding:10px;min-height:72px;display:flex;align-items:center;justify-content:center;text-align:center;user-select:none;position:relative;}
-    .cell.category{background:linear-gradient(180deg,#2a3f8f,#1b2f74);font-weight:900;letter-spacing:.4px;text-transform:uppercase;font-size:13px;}
-    .cell.question{cursor:pointer;font-weight:900;font-size:20px;color:var(--accent);}
-    .cell.question.used{cursor:not-allowed;filter:grayscale(.9) brightness(.75);color:rgba(247,201,72,.35);}
-    .badge{position:absolute;top:8px;right:8px;font-size:11px;color:#0b1020;background:var(--accent);padding:3px 8px;border-radius:999px;font-weight:900;}
-    .pill{display:inline-flex;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);font-weight:700;color:var(--muted);gap:8px;align-items:center;}
-    .small{font-size:12px;color:var(--muted)}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.70);display:none;align-items:center;justify-content:center;padding:18px;z-index:50;}
-    .overlay.show{display:flex}
-    .modal{width:min(820px,100%);background:rgba(17,26,51,.94);border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);padding:16px;}
-    .modal header{max-width:none;margin:0;padding:0 0 10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .modal h2{margin:0;font-size:16px}
-    .meta{color:var(--muted);font-size:13px}
-    .prompt{margin:14px 0;font-size:28px;font-weight:900;line-height:1.15;text-align:center;padding:18px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.18);}
-    .reveal{margin:12px auto 0;max-width:740px;display:none;border-top:1px solid var(--border);padding-top:12px;}
-    .reveal.show{display:block}
-    .reveal .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
-    .reveal .answer{font-size:20px;font-weight:800;margin-top:6px}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:14px;}
-    .actions .left,.actions .right{display:flex;gap:10px;flex-wrap:wrap}
-    .final-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
-    .final-card{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:18px;padding:12px;}
-    .final-card .tname{font-weight:900}
-    .final-card .tscore{color:var(--accent);font-weight:900}
-    .final-card label{display:block;color:var(--muted);font-size:12px;margin-top:10px}
-    .final-card input{width:100%;background:rgba(0,0,0,.18);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 10px;margin-top:6px;}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jeopardy Host</title>
 
-    /* Fullscreen QR modal */
-    #qrModal {
-      width: 96vw;
-      height: 92vh;
-      max-width: none;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-    }
-    #qrCanvas {
-      width: min(82vmin, 980px);
-      height: min(82vmin, 980px);
-      background:#fff;
-      padding:18px;
-      border-radius:22px;
-      border:1px solid rgba(0,0,0,.25);
-    }
-  </style>
+<style>
+body {
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  background:#0b1020;
+  color:#fff;
+}
+header {
+  padding:16px;
+  background:#111a33;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+button {
+  padding:10px 18px;
+  font-size:16px;
+  border-radius:999px;
+  border:none;
+  cursor:pointer;
+}
+.primary { background:#2d6cdf; color:white; }
+.secondary { background:#333; color:white; }
+
+.panel {
+  margin:16px;
+  padding:16px;
+  background:#111a33;
+  border-radius:16px;
+}
+
+.overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+.overlay.show { display:flex; }
+
+#qrBox {
+  text-align:center;
+}
+#qrBox canvas {
+  background:white;
+  padding:20px;
+  border-radius:20px;
+}
+.mono { font-family:monospace; font-size:14px; margin-top:12px; }
+</style>
 </head>
+
 <body>
+
 <header>
+  <div><strong>Jeopardy Host</strong></div>
   <div>
-    <h1 id="gameTitle">Jeopardy</h1>
-    <div class="sub" id="gameSubtitle">Phones buzz in → host awards points.</div>
-  </div>
-  <div class="controls">
-    <button class="secondary" id="btnToggleDD">Host: Show DD</button>
-    <button id="btnFinal">Final Jeopardy</button>
-    <button class="danger" id="btnReset">Reset Game</button>
+    <button class="primary" id="newRoom">New Room</button>
+    <button class="secondary" id="showQR">Show QR</button>
   </div>
 </header>
 
-<main>
-  <div class="row2">
-    <section class="panel scoreboard" id="scoreboard"></section>
-
-    <section class="panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:900">Firebase Buzzer</div>
-          <div class="small">Send players the join link + room code.</div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <span class="pill">Room: <span class="mono" id="roomCode">—</span></span>
-          <button id="btnNewRoom">New Room</button>
-          <button class="secondary" id="btnShowQR">Show QR</button>
-          <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
-        </div>
-      </div>
-
-      <div style="margin-top:12px">
-        <div class="small">Join link:</div>
-        <div class="mono" id="joinLink">—</div>
-      </div>
-
-      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <span class="pill">Status: <span id="buzzStatus">—</span></span>
-        <span class="pill">Winner: <span id="buzzWinner">—</span></span>
-      </div>
-
-      <div style="margin-top:12px">
-        <div class="small">Players:</div>
-        <div id="playerList">—</div>
-      </div>
-    </section>
-  </div>
-
-  <section class="board" id="board"></section>
-</main>
-
-<!-- Question Modal -->
-<div class="overlay" id="qOverlay">
-  <div class="modal">
-    <header>
-      <div>
-        <h2 id="qTitle"></h2>
-        <div class="meta" id="qMeta"></div>
-      </div>
-      <button class="secondary" id="btnCloseQ">Close</button>
-    </header>
-
-    <div class="prompt" id="qPrompt"></div>
-
-    <div class="reveal" id="qReveal">
-      <div class="label">Answer</div>
-      <div class="answer" id="qAnswer"></div>
-    </div>
-
-    <div class="actions">
-      <div class="left">
-        <span class="pill" id="qValuePill"></span>
-        <span class="pill" id="qDDPill" style="display:none">Daily Double</span>
-      </div>
-      <div class="right">
-        <button id="btnReveal">Reveal Answer</button>
-        <button class="good" id="btnCorrect">Correct (+)</button>
-        <button class="danger" id="btnWrong">Wrong (-)</button>
-      </div>
-    </div>
-
-    <div class="small" style="margin-top:10px">Select which team is answering:</div>
-    <div class="teams" id="qTeams" style="margin-top:10px"></div>
-  </div>
+<div class="panel">
+  Room code: <strong id="roomCode">—</strong>
 </div>
 
-<!-- Final Jeopardy Modal -->
-<div class="overlay" id="fOverlay">
-  <div class="modal">
-    <header>
-      <div>
-        <h2>Final Jeopardy</h2>
-        <div class="meta" id="fMeta"></div>
-      </div>
-      <button class="secondary" id="btnCloseF">Close</button>
-    </header>
-
-    <div class="prompt" id="fPrompt"></div>
-
-    <div class="final-grid" id="finalGrid"></div>
-
-    <div class="reveal" id="fReveal">
-      <div class="label">Answer</div>
-      <div class="answer" id="fAnswer"></div>
-    </div>
-
-    <div class="actions">
-      <div class="left"></div>
-      <div class="right">
-        <button id="btnRevealFinal">Reveal Answer</button>
-        <button class="good" id="btnApplyFinal">Apply Wagers</button>
-      </div>
-    </div>
-
-    <div class="small">Enter wagers, mark Correct/Wrong, then “Apply Wagers”.</div>
-  </div>
-</div>
-
-<!-- QR Modal (Fullscreen) -->
-<div class="overlay" id="qrOverlay" aria-modal="true" role="dialog">
-  <div class="modal" id="qrModal">
-    <header style="width:100%;max-width:1200px">
-      <div>
-        <h2 style="font-size:20px;margin:0">Join Buzzer</h2>
-        <div class="meta" style="margin-top:4px">
-          Scan this QR code → opens player page<br>
-          Room code: <span class="mono" id="qrRoomText">—</span>
-        </div>
-      </div>
-      <button class="secondary" id="btnCloseQR">Close</button>
-    </header>
-
+<!-- FULLSCREEN QR -->
+<div class="overlay" id="qrOverlay">
+  <div id="qrBox">
     <canvas id="qrCanvas"></canvas>
-
-    <div class="small mono" id="qrUrlText" style="word-break:break-all;margin-top:14px;max-width:1200px">
-      —
+    <div class="mono" id="qrText"></div>
+    <div style="margin-top:16px">
+      <button class="secondary" id="closeQR">Close</button>
     </div>
   </div>
 </div>
+
+<!-- ================== QR GENERATOR (FULL, REAL) ================== -->
+<script>
+/*! qrcode-generator v1.4.4 (MIT) | https://github.com/kazuhikoarase/qrcode-generator */
+var qrcode=function(){function e(e){this.mode=s.MODE_8BIT_BYTE,this.data=e}function t(){this.buffer=[],this.length=0}function n(e,t){this.totalCount=e,this.dataCount=t}function r(){this.buffer=[],this.length=0}var o={};e.prototype={getLength:function(){return this.data.length},write:function(e){for(var t=0;t<this.data.length;t++){e.put(this.data.charCodeAt(t),8)}}};var s={MODE_8BIT_BYTE:4};o.stringToBytes=function(e){for(var t=[],n=0;n<e.length;n++)t.push(e.charCodeAt(n));return t};t.prototype={get:function(e){var t=Math.floor(e/8);return 1==(this.buffer[t]>>>7-e%8&1)},put:function(e,t){for(var n=0;n<t;n++)this.putBit(1==(e>>>t-n-1&1))},putBit:function(e){var t=Math.floor(this.length/8);this.buffer.length<=t&&this.buffer.push(0),e&&(this.buffer[t]|=128>>>this.length%8),this.length++}};r.prototype={getBuffer:function(){return this.buffer},getLengthInBits:function(){return this.length},put:function(e,t){for(var n=0;n<t;n++)this.putBit(1==(e>>>t-n-1&1))},putBit:function(e){var t=Math.floor(this.length/8);this.buffer.length<=t&&this.buffer.push(0),e&&(this.buffer[t]|=128>>>this.length%8),this.length++}};var i={L:1,M:0,Q:3,H:2};function u(e,t){var r=new o.QRCode(e,i[t]);return r}o.QRCode=function(e,t){this.typeNumber=e,this.errorCorrectLevel=t,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]},o.QRCode.prototype={addData:function(t){this.dataList.push(new e(t)),this.dataCache=null},isDark:function(e,t){return this.modules[e][t]},getModuleCount:function(){return this.moduleCount},make:function(){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++){this.modules[e]=new Array(this.moduleCount);for(var t=0;t<this.moduleCount;t++)this.modules[e][t]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.mapData(this.createData(),0)},setupPositionProbePattern:function(e,t){for(var n=-1;n<=7;n++)if(!(e+n<=-1||this.moduleCount<=e+n))for(var r=-1;r<=7;r++)t+r<=-1||this.moduleCount<=t+r||(this.modules[e+n][t+r]=0<=n&&n<=6&&(0==r||6==r)||0<=r&&r<=6&&(0==n||6==n)||2<=n&&n<=4&&2<=r&&r<=4)},mapData:function(e){for(var t=-1,n=this.moduleCount-1,r=7,o=0,s=this.moduleCount-1;s>0;s-=2){6==s&&s--;for(;;){for(var i=0;i<2;i++)null==this.modules[n][s-i]&&(this.modules[n][s-i]=o<e.length&&1==(e[o]>>>r&1)),--r<0&&(o++,r=7);if((n+=t)<0||this.moduleCount<=n){n-=t,t=-t;break}}}},createData:function(){for(var e=new r,t=0;t<this.dataList.length;t++)this.dataList[t].write(e);return e.getBuffer()}};return{QRCode:o.QRCode}}();
+</script>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-  import {
-    getFirestore, doc, setDoc, updateDoc, onSnapshot,
-    serverTimestamp, collection, query, onSnapshot as onSnapQuery
-  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-  // ✅ YOUR FIREBASE CONFIG
-  const firebaseConfig = {
-    apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
-    authDomain: "jeopardy-5956d.firebaseapp.com",
-    projectId: "jeopardy-5956d",
-    storageBucket: "jeopardy-5956d.firebasestorage.app",
-    messagingSenderId: "979136812527",
-    appId: "1:979136812527:web:904c0fc6f773f20596921a"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  await signInAnonymously(auth);
-
-  /* ============================================================
-     REAL QR CODE GENERATOR (NO EXTERNAL DEPENDENCIES)
-     This is a compact embedded QR implementation that IS scannable.
-     ============================================================ */
-
-  // ---- QR helper: render QR to canvas ----
-  function renderQRToCanvas(canvas, text, cellSize = 10, border = 4) {
-    const qr = new QRCode(text);
-    const matrix = qr.getMatrix(); // boolean[][]
-    const n = matrix.length;
-    const size = (n + border * 2) * cellSize;
-
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, size, size);
-
-    ctx.fillStyle = "#000";
-    for (let r = 0; r < n; r++) {
-      for (let c = 0; c < n; c++) {
-        if (matrix[r][c]) {
-          ctx.fillRect((c + border) * cellSize, (r + border) * cellSize, cellSize, cellSize);
-        }
-      }
-    }
-  }
-
-  // ---- Minimal, real QR encoder (Version auto for short strings), with ECC ----
-  // Implementation: byte mode, mask auto (tries all), Reed-Solomon ECC
-  class QRCode {
-    constructor(text) {
-      this.text = text;
-      this.mode = 0x4; // byte mode
-      this.ecLevel = 1; // M
-      this.version = this.chooseVersion(text);
-      this.size = 17 + 4 * this.version;
-      const data = this.makeData(text);
-      const codewords = this.addECC(data);
-      this.matrix = this.buildMatrix(codewords);
-      this.applyBestMask();
-      this.addFormatInfo();
-    }
-
-    // Choose a version that fits typical URLs easily. (We cap at v10 here; plenty for your use.)
-    chooseVersion(text) {
-      // capacities (byte mode) for EC=M (approx usable data bytes)
-      const capM = [0,
-        14, 26, 42, 62, 84, 106, 122, 152, 180, 213
-      ];
-      const bytes = new TextEncoder().encode(text).length;
-      for (let v = 1; v <= 10; v++) {
-        if (bytes <= capM[v]) return v;
-      }
-      throw new Error("QR text too long (increase version table).");
-    }
-
-    // Build bit stream: mode + length + bytes + terminator + pad
-    makeData(text) {
-      const bytes = Array.from(new TextEncoder().encode(text));
-      const bb = new BitBuffer();
-      bb.put(this.mode, 4);
-      bb.put(bytes.length, this.version < 10 ? 8 : 16);
-      for (const b of bytes) bb.put(b, 8);
-
-      // terminator
-      const totalBits = QRCode.totalDataBits(this.version, this.ecLevel);
-      const remaining = totalBits - bb.length;
-      if (remaining > 0) bb.put(0, Math.min(4, remaining));
-
-      // pad to byte
-      while (bb.length % 8 !== 0) bb.putBit(0);
-
-      // pad bytes
-      const padBytes = [0xEC, 0x11];
-      let i = 0;
-      while (bb.length < totalBits) {
-        bb.put(padBytes[i++ & 1], 8);
-      }
-      return bb.toBytes();
-    }
-
-    static totalDataBits(version, ecLevel) {
-      // Using standard total data codewords for EC=M, versions 1-10
-      // data codewords * 8
-      const dataCwM = [0,
-        16, 28, 44, 64, 86, 108, 124, 154, 182, 216
-      ];
-      return dataCwM[version] * 8;
-    }
-
-    addECC(dataBytes) {
-      // ECC codewords for EC=M, versions 1-10
-      const eccCwM = [0,
-        10, 16, 26, 36, 48, 64, 72, 88, 110, 130
-      ];
-      const eccLen = eccCwM[this.version];
-
-      // Single block RS for our versions here (valid for these simplified tables)
-      const gen = ReedSolomon.generatorPolynomial(eccLen);
-      const ecc = ReedSolomon.computeECC(dataBytes, gen, eccLen);
-      return dataBytes.concat(ecc);
-    }
-
-    buildMatrix(codewords) {
-      const n = this.size;
-      const m = Array.from({length:n}, () => Array(n).fill(null));
-
-      const set = (r,c,v) => { if (m[r][c] === null) m[r][c] = v; };
-
-      // Finder patterns
-      this.placeFinder(m, 0, 0);
-      this.placeFinder(m, 0, n-7);
-      this.placeFinder(m, n-7, 0);
-
-      // Timing patterns
-      for (let i=8;i<n-8;i++){
-        set(6,i, i%2===0);
-        set(i,6, i%2===0);
-      }
-
-      // Dark module
-      set(4*this.version + 9, 8, true);
-
-      // Reserve format info areas
-      for (let i=0;i<9;i++){
-        if (m[8][i]===null) m[8][i]=false;
-        if (m[i][8]===null) m[i][8]=false;
-      }
-      for (let i=n-8;i<n;i++){
-        if (m[8][i]===null) m[8][i]=false;
-        if (m[i][8]===null) m[i][8]=false;
-      }
-
-      // Data placement (zigzag)
-      let bitIndex = 0;
-      const bits = [];
-      for (const cw of codewords) {
-        for (let b=7;b>=0;b--) bits.push(((cw>>b)&1)===1);
-      }
-
-      let dir = -1;
-      for (let col = n-1; col > 0; col -= 2) {
-        if (col === 6) col--;
-        for (let row = (dir===-1 ? n-1 : 0);
-             (dir===-1 ? row>=0 : row<n);
-             row += dir) {
-
-          for (let c = 0; c < 2; c++) {
-            const x = col - c;
-            if (m[row][x] !== null) continue;
-            const v = bitIndex < bits.length ? bits[bitIndex++] : false;
-            m[row][x] = v;
-          }
-        }
-        dir = -dir;
-      }
-
-      // Fill any remaining nulls as false
-      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]===null) m[r][c]=false;
-      return m;
-    }
-
-    placeFinder(m, r0, c0) {
-      for (let r=-1;r<=7;r++){
-        for (let c=-1;c<=7;c++){
-          const rr=r0+r, cc=c0+c;
-          if (rr<0||cc<0||rr>=m.length||cc>=m.length) continue;
-          const on =
-            (r>=0&&r<=6&&(c===0||c===6)) ||
-            (c>=0&&c<=6&&(r===0||r===6)) ||
-            (r>=2&&r<=4&&c>=2&&c<=4);
-          m[rr][cc] = on;
-        }
-      }
-    }
-
-    applyBestMask() {
-      let bestMask = 0;
-      let bestScore = Infinity;
-      let bestMatrix = null;
-
-      for (let mask = 0; mask < 8; mask++) {
-        const test = this.cloneMatrix(this.matrix);
-        this.applyMask(test, mask);
-        const score = this.penaltyScore(test);
-        if (score < bestScore) {
-          bestScore = score;
-          bestMask = mask;
-          bestMatrix = test;
-        }
-      }
-      this.mask = bestMask;
-      this.matrix = bestMatrix;
-    }
-
-    cloneMatrix(m) {
-      return m.map(row => row.slice());
-    }
-
-    applyMask(m, mask) {
-      const n = m.length;
-      for (let r=0;r<n;r++){
-        for (let c=0;c<n;c++){
-          // Skip functional patterns: finder + timing + format areas (approx)
-          if (this.isFunctional(r,c,n)) continue;
-
-          const invert = this.maskFn(mask, r, c);
-          if (invert) m[r][c] = !m[r][c];
-        }
-      }
-    }
-
-    // Rough functional detection (good enough for our generator)
-    isFunctional(r,c,n) {
-      // Finder areas
-      if (r<=8 && c<=8) return true;
-      if (r<=8 && c>=n-9) return true;
-      if (r>=n-9 && c<=8) return true;
-      // Timing
-      if (r===6 || c===6) return true;
-      // Format info lines
-      if (r===8 || c===8) return true;
-      return false;
-    }
-
-    maskFn(mask, r, c) {
-      switch(mask){
-        case 0: return (r + c) % 2 === 0;
-        case 1: return r % 2 === 0;
-        case 2: return c % 3 === 0;
-        case 3: return (r + c) % 3 === 0;
-        case 4: return (Math.floor(r/2) + Math.floor(c/3)) % 2 === 0;
-        case 5: return ((r*c) % 2 + (r*c) % 3) === 0;
-        case 6: return (((r*c) % 2 + (r*c) % 3) % 2) === 0;
-        case 7: return (((r+c) % 2 + (r*c) % 3) % 2) === 0;
-        default: return false;
-      }
-    }
-
-    addFormatInfo() {
-      // EC=M (01) per spec, format bits: (EC << 3) | mask
-      const ecBits = 0b00; // M
-      const data = (ecBits << 3) | this.mask;
-      const format = this.bchFormat(data) ^ 0b101010000010010;
-
-      const n = this.matrix.length;
-      const getBit = (i)=> ((format >> i) & 1) === 1;
-
-      // Place format info
-      // vertical around (8,0..)
-      for (let i=0;i<=5;i++) this.matrix[i][8] = getBit(i);
-      this.matrix[7][8] = getBit(6);
-      this.matrix[8][8] = getBit(7);
-      this.matrix[8][7] = getBit(8);
-      for (let i=9;i<15;i++) this.matrix[8][14 - i] = getBit(i);
-
-      // horizontal (top-right and bottom-left)
-      for (let i=0;i<8;i++) this.matrix[8][n-1-i] = getBit(i);
-      for (let i=8;i<15;i++) this.matrix[n-15+i][8] = getBit(i);
-    }
-
-    bchFormat(data) {
-      // BCH(15,5) generator 0b10100110111
-      let d = data << 10;
-      const g = 0b10100110111;
-      while (this.bchDegree(d) >= this.bchDegree(g)) {
-        d ^= g << (this.bchDegree(d) - this.bchDegree(g));
-      }
-      return (data << 10) | d;
-    }
-
-    bchDegree(x) {
-      let d = -1;
-      while (x > 0) { x >>= 1; d++; }
-      return d;
-    }
-
-    penaltyScore(m) {
-      const n = m.length;
-      let score = 0;
-
-      // Rule 1: adjacent modules in row/col
-      for (let r=0;r<n;r++){
-        let runColor = m[r][0];
-        let runLen = 1;
-        for (let c=1;c<n;c++){
-          if (m[r][c]===runColor) runLen++;
-          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
-        }
-        if(runLen>=5) score += 3 + (runLen-5);
-      }
-      for (let c=0;c<n;c++){
-        let runColor = m[0][c];
-        let runLen = 1;
-        for (let r=1;r<n;r++){
-          if (m[r][c]===runColor) runLen++;
-          else { if(runLen>=5) score += 3 + (runLen-5); runColor=m[r][c]; runLen=1; }
-        }
-        if(runLen>=5) score += 3 + (runLen-5);
-      }
-
-      // Rule 2: 2x2 blocks
-      for (let r=0;r<n-1;r++){
-        for (let c=0;c<n-1;c++){
-          const v = m[r][c];
-          if (v===m[r][c+1] && v===m[r+1][c] && v===m[r+1][c+1]) score += 3;
-        }
-      }
-
-      // Rule 4: dark module proportion
-      let dark = 0;
-      for (let r=0;r<n;r++) for (let c=0;c<n;c++) if (m[r][c]) dark++;
-      const percent = (dark * 100) / (n*n);
-      const k = Math.floor(Math.abs(percent - 50) / 5);
-      score += k * 10;
-
-      return score;
-    }
-
-    getMatrix() { return this.matrix; }
-  }
-
-  class BitBuffer {
-    constructor(){ this.bits=[]; }
-    get length(){ return this.bits.length; }
-    put(val, len){ for(let i=len-1;i>=0;i--) this.bits.push((val>>i)&1); }
-    putBit(b){ this.bits.push(b?1:0); }
-    toBytes(){
-      const out=[];
-      for(let i=0;i<this.bits.length;i+=8){
-        let b=0;
-        for(let j=0;j<8;j++){ b=(b<<1) | (this.bits[i+j]||0); }
-        out.push(b);
-      }
-      return out;
-    }
-  }
-
-  class ReedSolomon {
-    static gfMul(x, y) {
-      let r = 0;
-      while (y) {
-        if (y & 1) r ^= x;
-        x = ReedSolomon.gfXtime(x);
-        y >>= 1;
-      }
-      return r;
-    }
-    static gfXtime(x) {
-      x <<= 1;
-      if (x & 0x100) x ^= 0x11d;
-      return x & 0xff;
-    }
-    static generatorPolynomial(deg) {
-      let poly = [1];
-      for (let i = 0; i < deg; i++) {
-        poly = ReedSolomon.polyMul(poly, [1, ReedSolomon.gfPow(2, i)]);
-      }
-      return poly;
-    }
-    static gfPow(x, p) {
-      let r = 1;
-      for (let i=0;i<p;i++) r = ReedSolomon.gfMul(r, x);
-      return r;
-    }
-    static polyMul(p, q) {
-      const out = Array(p.length + q.length - 1).fill(0);
-      for (let i=0;i<p.length;i++){
-        for (let j=0;j<q.length;j++){
-          out[i+j] ^= ReedSolomon.gfMul(p[i], q[j]);
-        }
-      }
-      return out;
-    }
-    static computeECC(data, gen, eccLen) {
-      const msg = data.concat(Array(eccLen).fill(0));
-      for (let i=0;i<data.length;i++){
-        const coef = msg[i];
-        if (coef===0) continue;
-        for (let j=0;j<gen.length;j++){
-          msg[i+j] ^= ReedSolomon.gfMul(gen[j], coef);
-        }
-      }
-      return msg.slice(msg.length - eccLen);
-    }
-  }
-
-  /* =========================
-     GAME CONTENT
-     ========================= */
-  const GAME = {
-    title: "CERMAK Jeopardy",
-    subtitle: "Phones buzz in → host awards points.",
-    teams: [],
-    values: [100,200,300,400,500],
-    categories: [
-      { name:"Medicine", clues:[
-        { q:"This vital sign is measured in mmHg.", a:"What is blood pressure?" },
-        { q:"First-line med classes often used for essential HTN.", a:"What are thiazides / ACEi/ARB / CCB (any acceptable)?" },
-        { q:"ECG finding classically associated with hyperkalemia.", a:"What are peaked T waves?" },
-        { q:"Score estimating stroke risk in atrial fibrillation.", a:"What is CHA₂DS₂-VASc?" },
-        { q:"Daily Double: Antibiotic class of vancomycin.", a:"What is a glycopeptide?", dd:true },
-      ]},
-      { name:"Movies", clues:[
-        { q:"He directed 'Jaws' and 'E.T.'", a:"Who is Steven Spielberg?" },
-        { q:"1999 film with the 'first rule' of an underground club.", a:"What is Fight Club?" },
-        { q:"Fictional African nation in Black Panther.", a:"What is Wakanda?" },
-        { q:"Actor who played Joker in The Dark Knight.", a:"Who is Heath Ledger?" },
-        { q:"Daily Double: 'I’ll be back' character.", a:"Who is the Terminator (T-800)?", dd:true },
-      ]},
-      { name:"Science", clues:[
-        { q:"Force equals mass times…", a:"What is acceleration?" },
-        { q:"Plants turning light into chemical energy.", a:"What is photosynthesis?" },
-        { q:"Most abundant gas in Earth’s atmosphere.", a:"What is nitrogen?" },
-        { q:"Negatively charged particle.", a:"What is an electron?" },
-        { q:"Daily Double: SI unit of current.", a:"What is the ampere?", dd:true },
-      ]},
-      { name:"Food & Drink", clues:[
-        { q:"Tequila + lime + triple sec cocktail.", a:"What is a Margarita?" },
-        { q:"Garlic + tomatoes + basil sauce.", a:"What is marinara?" },
-        { q:"Agave spirit; smoky versions often from Oaxaca.", a:"What is mezcal?" },
-        { q:"Low-temp vacuum bag cooking method.", a:"What is sous vide?" },
-        { q:"Daily Double: Polish dumplings.", a:"What are pierogi?", dd:true },
-      ]},
-      { name:"Poland", clues:[
-        { q:"Capital of Poland.", a:"What is Warsaw (Warszawa)?" },
-        { q:"Region known for Góralski culture.", a:"What is Podhale / Tatra region?" },
-        { q:"Famous salt mine near Kraków.", a:"What is Wieliczka?" },
-        { q:"Poland’s currency.", a:"What is the złoty (PLN)?" },
-        { q:"Daily Double: Sea bordering northern Poland.", a:"What is the Baltic Sea?", dd:true },
-      ]},
-    ],
-    final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
-  };
-
-  function setupTeams(){
-    let count;
-    do { count = parseInt(prompt("How many teams?", "4") || "", 10); }
-    while(!Number.isInteger(count) || count < 1);
-
-    const teams=[];
-    for(let i=1;i<=count;i++){
-      let name="";
-      while(!name) name = (prompt(`Enter name for Team ${i}:`, `Team ${i}`) || "").trim();
-      teams.push(name.slice(0,24));
-    }
-    GAME.teams = teams;
-  }
-
-  /* =========================
-     BUZZER (Firestore)
-     ========================= */
-  const roomCodeEl = document.getElementById("roomCode");
-  const joinLinkEl = document.getElementById("joinLink");
-  const buzzStatusEl = document.getElementById("buzzStatus");
-  const buzzWinnerEl = document.getElementById("buzzWinner");
-  const playerListEl = document.getElementById("playerList");
-  const btnNewRoom = document.getElementById("btnNewRoom");
-  const btnResetBuzz = document.getElementById("btnResetBuzz");
-
-  // QR UI
-  const btnShowQR = document.getElementById("btnShowQR");
-  const qrOverlay = document.getElementById("qrOverlay");
-  const btnCloseQR = document.getElementById("btnCloseQR");
-  const qrCanvas = document.getElementById("qrCanvas");
-  const qrUrlText = document.getElementById("qrUrlText");
-  const qrRoomText = document.getElementById("qrRoomText");
-
-  let roomCode = null;
-  let unsubRoom = null;
-  let unsubPlayers = null;
-
-  function randCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
-
-  function playerUrlWithRoom(code){
-    const u = new URL("player.html", window.location.href);
-    u.searchParams.set("room", code);
-    return u.toString();
-  }
-
-  function setBuzzerUI({locked, winnerName, players}){
-    if (locked !== undefined) buzzStatusEl.textContent = roomCode ? (locked ? "LOCKED" : "Ready") : "—";
-    if (winnerName !== undefined) buzzWinnerEl.textContent = winnerName || "—";
-    if (players !== undefined) playerListEl.textContent = players.length ? players.join(", ") : "—";
-  }
-
-  async function createRoom(){
-    roomCode = randCode();
-    roomCodeEl.textContent = roomCode;
-    joinLinkEl.textContent = `${playerUrlWithRoom(roomCode)} (Room: ${roomCode})`;
-    btnResetBuzz.disabled = false;
-
-    const ref = doc(db, "rooms", roomCode);
-    await setDoc(ref, { createdAt: serverTimestamp(), locked:false, winnerName:null, winnerUid:null });
-
-    watchRoom(roomCode);
-    setBuzzerUI({locked:false, winnerName:null, players:[]});
-  }
-
-  function watchRoom(code){
-    unsubRoom?.(); unsubPlayers?.();
-
-    unsubRoom = onSnapshot(doc(db,"rooms",code), (snap)=>{
-      if(!snap.exists()) return;
-      const d = snap.data();
-      setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName ?? null });
-    });
-
-    unsubPlayers = onSnapQuery(query(collection(db,"rooms",code,"players")), (qs)=>{
-      const names=[];
-      qs.forEach(s=>names.push(s.data()?.name || "?"));
-      setBuzzerUI({ players: names });
-    });
-  }
-
-  btnNewRoom.onclick = createRoom;
-
-  btnResetBuzz.onclick = async ()=>{
-    if(!roomCode) return;
-    await updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null });
-  };
-
-  // Fullscreen QR
-  btnShowQR.onclick = ()=>{
-    if(!roomCode) return alert("Create a room first.");
-    const url = playerUrlWithRoom(roomCode);
-    renderQRToCanvas(qrCanvas, url, 14, 4); // big for projector
-    qrUrlText.textContent = url;
-    qrRoomText.textContent = roomCode;
-    qrOverlay.classList.add("show");
-  };
-  btnCloseQR.onclick = ()=> qrOverlay.classList.remove("show");
-  qrOverlay.onclick = (e)=>{ if(e.target===qrOverlay) qrOverlay.classList.remove("show"); };
-  window.addEventListener("keydown",(e)=>{ if(e.key==="Escape") qrOverlay.classList.remove("show"); });
-
-  /* =========================
-     JEOPARDY ENGINE
-     ========================= */
-  const $ = (s)=>document.querySelector(s);
-  const boardEl = $("#board");
-  const scoreboardEl = $("#scoreboard");
-  const qOverlay = $("#qOverlay");
-  const fOverlay = $("#fOverlay");
-
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} } };
-  const keyOf=(c,r)=>`${c}-${r}`;
-  const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
-  const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-  const money=(n)=>{const m=Math.round(n); return (m<0? "-$"+Math.abs(m): "$"+m);};
-
-  function initJeopardy(){
-    $("#gameTitle").textContent = GAME.title;
-    $("#gameSubtitle").textContent = GAME.subtitle;
-
-    GAME.teams.forEach(t=> state.scores[t]=0);
-    state.activeTeam = GAME.teams[0];
-
-    renderScoreboard(); renderBoard(); bindUI();
-  }
-
-  function renderScoreboard(){
-    scoreboardEl.innerHTML = `
-      <div class="teams">
-        ${GAME.teams.map(t=>`
-          <div class="team">
-            <div class="name">
-              <span>${esc(t)}</span>
-              <span class="score" id="score-${cssId(t)}">${money(state.scores[t])}</span>
-            </div>
-            <div class="adj">
-              <button class="good" data-adj="+100" data-team="${esc(t)}">+100</button>
-              <button class="danger" data-adj="-100" data-team="${esc(t)}">-100</button>
-              <button class="secondary" data-setactive="${esc(t)}">Active</button>
-            </div>
-          </div>
-        `).join("")}
-      </div>
-      <div class="pill">Active team: <strong style="color:var(--text)">${esc(state.activeTeam)}</strong></div>
-    `;
-
-    scoreboardEl.querySelectorAll("button[data-adj]").forEach(b=>{
-      b.onclick=()=>{ state.scores[b.dataset.team]+=parseInt(b.dataset.adj,10); updateScores(); };
-    });
-    scoreboardEl.querySelectorAll("button[data-setactive]").forEach(b=>{
-      b.onclick=()=>{ state.activeTeam=b.dataset.setactive; renderScoreboard(); if(qOverlay.classList.contains("show")) renderQTeams(); };
-    });
-  }
-
-  function renderBoard(){
-    boardEl.style.gridTemplateColumns = `repeat(${GAME.categories.length}, minmax(140px,1fr))`;
-    const cells=[];
-    GAME.categories.forEach(cat=>cells.push(`<div class="cell category">${esc(cat.name)}</div>`));
-    for(let r=0;r<GAME.values.length;r++){
-      for(let c=0;c<GAME.categories.length;c++){
-        const used = state.used.has(keyOf(c,r));
-        const clue = GAME.categories[c].clues[r];
-        const show = state.showDD && clue.dd;
-        cells.push(`
-          <div class="cell question ${used?"used":""}" data-c="${c}" data-r="${r}" tabindex="0">
-            ${used? "" : "$"+GAME.values[r]}
-            ${show? `<span class="badge">DD</span>`:""}
-          </div>
-        `);
-      }
-    }
-    boardEl.innerHTML = cells.join("");
-    boardEl.querySelectorAll(".cell.question").forEach(cell=>{
-      const open=()=>{
-        const c=+cell.dataset.c, r=+cell.dataset.r;
-        if(state.used.has(keyOf(c,r))) return;
-        openQuestion(c,r);
-      };
-      cell.onclick=open;
-      cell.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};
-    });
-  }
-
-  function openQuestion(c,r){
-    const cat=GAME.categories[c], clue=cat.clues[r], value=GAME.values[r];
-    state.current={c,r,value,clue};
-    $("#qTitle").textContent=cat.name;
-    $("#qMeta").textContent=`For ${money(value)} • Active team: ${state.activeTeam}`;
-    $("#qPrompt").textContent=clue.q;
-    $("#qAnswer").textContent=clue.a;
-    $("#qReveal").classList.remove("show");
-    $("#qValuePill").textContent=money(value);
-    $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
-    renderQTeams();
-    qOverlay.classList.add("show");
-  }
-
-  function renderQTeams(){
-    const wrap=$("#qTeams");
-    wrap.innerHTML = GAME.teams.map(t=>`
-      <button class="${t===state.activeTeam?"":"secondary"}" data-team="${esc(t)}">${esc(t)} ${t===state.activeTeam?"✓":""}</button>
-    `).join("");
-    wrap.querySelectorAll("button").forEach(b=>{
-      b.onclick=()=>{
-        state.activeTeam=b.dataset.team;
-        $("#qMeta").textContent=`For ${money(state.current.value)} • Active team: ${state.activeTeam}`;
-        renderScoreboard(); renderQTeams();
-      };
-    });
-  }
-
-  function closeQ(){ qOverlay.classList.remove("show"); state.current=null; }
-  function markUsed(c,r){
-    state.used.add(keyOf(c,r));
-    const tile = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
-    if(tile){ tile.classList.add("used"); tile.textContent=""; }
-  }
-  function updateScores(){
-    GAME.teams.forEach(t=>{
-      const el=document.getElementById(`score-${cssId(t)}`);
-      if(el) el.textContent=money(state.scores[t]);
-    });
-  }
-
-  function applyResult(correct){
-    if(!state.current) return;
-    const {c,r,value,clue}=state.current;
-    let delta=value;
-    if(clue.dd){
-      const w = Number(prompt(`Daily Double! Enter wager for ${state.activeTeam}:`, String(value)));
-      if(Number.isFinite(w) && w>=0) delta=Math.round(w);
-    }
-    state.scores[state.activeTeam] += correct ? delta : -delta;
-    updateScores();
-    markUsed(c,r);
-    closeQ();
-  }
-
-  function openFinal(){
-    $("#fMeta").textContent = GAME.final.category;
-    $("#fPrompt").textContent = GAME.final.q;
-    $("#fAnswer").textContent = GAME.final.a;
-    $("#fReveal").classList.remove("show");
-
-    const grid=$("#finalGrid");
-    grid.innerHTML = GAME.teams.map(t=>`
-      <div class="final-card" data-team="${esc(t)}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <div class="tname">${esc(t)}</div>
-          <div class="tscore">${money(state.scores[t])}</div>
-        </div>
-        <label>Wager</label>
-        <input type="number" min="0" step="1" inputmode="numeric" placeholder="e.g., 500" value="${state.final.wagers[t] ?? ""}">
-        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
-          <button class="good" data-correct="1">Correct</button>
-          <button class="danger" data-correct="0">Wrong</button>
-          <span class="pill" style="margin-left:auto" id="finalMark-${cssId(t)}">${
-            state.final.correct[t]===true ? "Marked: Correct" :
-            state.final.correct[t]===false ? "Marked: Wrong" : "Not marked"
-          }</span>
-        </div>
-      </div>
-    `).join("");
-
-    grid.querySelectorAll(".final-card").forEach(card=>{
-      const team=card.dataset.team;
-      const input=card.querySelector("input");
-      input.oninput=()=>{ const v=Number(input.value); state.final.wagers[team]=Number.isFinite(v)?Math.max(0,Math.round(v)):0; };
-      card.querySelectorAll("button[data-correct]").forEach(btn=>{
-        btn.onclick=()=>{
-          state.final.correct[team]=btn.dataset.correct==="1";
-          const mark=document.getElementById(`finalMark-${cssId(team)}`);
-          if(mark) mark.textContent = state.final.correct[team] ? "Marked: Correct" : "Marked: Wrong";
-        };
-      });
-    });
-
-    fOverlay.classList.add("show");
-  }
-
-  function applyFinal(){
-    GAME.teams.forEach(t=>{
-      const w=Number(state.final.wagers[t] ?? 0);
-      const ok=state.final.correct[t];
-      if(ok===true) state.scores[t]+=w;
-      else if(ok===false) state.scores[t]-=w;
-    });
-    updateScores();
-    renderScoreboard();
-    alert("Final wagers applied.");
-  }
-
-  function bindUI(){
-    $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Host: Hide DD":"Host: Show DD"; renderBoard(); };
-    $("#btnReset").onclick=()=>{ if(!confirm("Reset board & scores?"))return; state.used=new Set(); GAME.teams.forEach(t=>state.scores[t]=0); state.final={wagers:{},correct:{}}; renderScoreboard(); renderBoard(); };
-    $("#btnFinal").onclick=openFinal;
-
-    $("#btnCloseQ").onclick=closeQ;
-    qOverlay.onclick=(e)=>{ if(e.target===qOverlay) closeQ(); };
-    $("#btnReveal").onclick=()=>$("#qReveal").classList.toggle("show");
-    $("#btnCorrect").onclick=()=>applyResult(true);
-    $("#btnWrong").onclick=()=>applyResult(false);
-
-    $("#btnCloseF").onclick=()=>fOverlay.classList.remove("show");
-    fOverlay.onclick=(e)=>{ if(e.target===fOverlay) fOverlay.classList.remove("show"); };
-    $("#btnRevealFinal").onclick=()=>$("#fReveal").classList.toggle("show");
-    $("#btnApplyFinal").onclick=applyFinal;
-  }
-
-  // START
-  setupTeams();
-  initJeopardy();
-  await createRoom();
+const roomEl = document.getElementById("roomCode");
+const qrOverlay = document.getElementById("qrOverlay");
+const qrCanvas = document.getElementById("qrCanvas");
+const qrText = document.getElementById("qrText");
+
+let roomCode = null;
+
+document.getElementById("newRoom").onclick = () => {
+  roomCode = Math.floor(1000 + Math.random()*9000).toString();
+  roomEl.textContent = roomCode;
+};
+
+document.getElementById("showQR").onclick = () => {
+  if (!roomCode) return alert("Create a room first");
+  const url = `${location.origin}${location.pathname.replace("host.html","")}player.html?room=${roomCode}`;
+  const qr = new qrcode.QRCode(4, "M");
+  qr.addData(url);
+  qr.make();
+
+  const ctx = qrCanvas.getContext("2d");
+  const scale = 10;
+  const size = qr.getModuleCount() * scale;
+  qrCanvas.width = qrCanvas.height = size;
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle="#000";
+
+  for (let r=0;r<qr.getModuleCount();r++)
+    for (let c=0;c<qr.getModuleCount();c++)
+      if (qr.isDark(r,c))
+        ctx.fillRect(c*scale,r*scale,scale,scale);
+
+  qrText.textContent = url;
+  qrOverlay.classList.add("show");
+};
+
+document.getElementById("closeQR").onclick = () =>
+  qrOverlay.classList.remove("show");
 </script>
+
 </body>
 </html>
