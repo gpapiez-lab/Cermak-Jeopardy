@@ -77,6 +77,12 @@
   joinBtn.onclick = async ()=>{
     roomCode = roomEl.value.trim().toUpperCase();
     playerName = nameEl.value.trim().slice(0,24);
+    // Autofill room from QR: player.html?room=1234
+const params = new URLSearchParams(window.location.search);
+const roomFromUrl = (params.get("room") || "").trim().toUpperCase();
+if (roomFromUrl) roomEl.value = roomFromUrl;
+if (roomFromUrl) nameEl.focus();
+
     if(!roomCode || !playerName) return alert("Enter room code and name");
 
     await setDoc(doc(db,"rooms",roomCode,"players",auth.currentUser.uid), {
