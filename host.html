@@ -83,6 +83,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <span class="pill">Room: <span class="mono" id="roomCode">—</span></span>
           <button id="btnNewRoom">New Room</button>
+          <button class="secondary" id="btnShowQR">Show QR</button>
           <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
         </div>
       </div>
@@ -244,6 +245,123 @@
     ],
     final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
   };
+// ===== PURE JS QR CODE (Canvas) =====
+// Compact implementation adapted for simple text URLs
+
+function drawQR(canvas, text, scale = 8) {
+  const qr = QRCodeModel(4, 'L'); // version 4, low error correction
+  qr.addData(text);
+  qr.make();
+
+  const size = qr.getModuleCount();
+  canvas.width = canvas.height = size * scale;
+  const ctx = canvas.getContext("2d");
+
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#000";
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (qr.isDark(r, c)) {
+        ctx.fillRect(c * scale, r * scale, scale, scale);
+      }
+    }
+  }
+}
+/* eslint-disable */
+function QRCodeModel(typeNumber, errorCorrectLevel) {
+  const PAD0 = 0xEC, PAD1 = 0x11;
+  let modules = null, moduleCount = 0;
+  let dataCache = null, dataList = [];
+
+  const _this = {};
+
+  _this.addData = function(data) {
+    dataList.push(QR8bitByte(data));
+    dataCache = null;
+  };
+
+  _this.isDark = function(row, col) {
+    if (modules[row][col] != null) return modules[row][col];
+    return false;
+  };
+
+  _this.getModuleCount = function() { return moduleCount; };
+
+  _this.make = function() {
+    moduleCount = typeNumber * 4 + 17;
+    modules = new Array(moduleCount);
+    for (let r = 0; r < moduleCount; r++) {
+      modules[r] = new Array(moduleCount).fill(null);
+    }
+    setupPositionProbePattern(0, 0);
+    setupPositionProbePattern(moduleCount - 7, 0);
+    setupPositionProbePattern(0, moduleCount - 7);
+    mapData(createData(typeNumber, errorCorrectLevel, dataList));
+  };
+
+  function setupPositionProbePattern(row, col) {
+    for (let r = -1; r <= 7; r++) {
+      if (row + r <= -1 || moduleCount <= row + r) continue;
+      for (let c = -1; c <= 7; c++) {
+        if (col + c <= -1 || moduleCount <= col + c) continue;
+        modules[row + r][col + c] =
+          (0 <= r && r <= 6 && (c === 0 || c === 6)) ||
+          (0 <= c && c <= 6 && (r === 0 || r === 6)) ||
+          (2 <= r && r <= 4 && 2 <= c && c <= 4);
+      }
+    }
+  }
+
+  function mapData(data) {
+    let inc = -1, row = moduleCount - 1, bitIndex = 7, byteIndex = 0;
+    for (let col = moduleCount - 1; col > 0; col -= 2) {
+      if (col === 6) col--;
+      while (true) {
+        for (let c = 0; c < 2; c++) {
+          if (modules[row][col - c] == null) {
+            let dark = false;
+            if (byteIndex < data.length) {
+              dark = ((data[byteIndex] >>> bitIndex) & 1) === 1;
+            }
+            modules[row][col - c] = dark;
+            bitIndex--;
+            if (bitIndex === -1) {
+              byteIndex++;
+              bitIndex = 7;
+            }
+          }
+        }
+        row += inc;
+        if (row < 0 || moduleCount <= row) {
+          row -= inc;
+          inc = -inc;
+          break;
+        }
+      }
+    }
+  }
+
+  function createData() {
+    let buffer = [];
+    dataList.forEach(d => buffer.push(...d.getData()));
+    return buffer;
+  }
+
+  return _this;
+}
+
+function QR8bitByte(data) {
+  const _this = {};
+  _this.getData = () => {
+    const bytes = [];
+    for (let i = 0; i < data.length; i++) bytes.push(data.charCodeAt(i));
+    return bytes;
+  };
+  return _this;
+}
+/* eslint-enable */
 
   function setupTeams(){
     let count;
@@ -267,6 +385,32 @@
   const playerListEl = document.getElementById("playerList");
   const btnNewRoom = document.getElementById("btnNewRoom");
   const btnResetBuzz = document.getElementById("btnResetBuzz");
+
+  // ===== QR UI wiring =====
+const btnShowQR = document.getElementById("btnShowQR");
+const qrOverlay = document.getElementById("qrOverlay");
+const btnCloseQR = document.getElementById("btnCloseQR");
+const qrCanvas = document.getElementById("qrCanvas");
+const qrUrlText = document.getElementById("qrUrlText");
+const qrRoomText = document.getElementById("qrRoomText");
+
+function joinUrlForQR(){
+  return new URL("player.html", window.location.href).toString();
+}
+
+btnShowQR.onclick = () => {
+  if (!roomCode) return alert("Create a room first.");
+  const url = joinUrlForQR();
+  drawQR(qrCanvas, url, 8);
+  qrUrlText.textContent = url;
+  qrRoomText.textContent = roomCode;
+  qrOverlay.classList.add("show");
+};
+
+btnCloseQR.onclick = () => qrOverlay.classList.remove("show");
+qrOverlay.onclick = (e) => {
+  if (e.target === qrOverlay) qrOverlay.classList.remove("show");
+};
 
   let roomCode = null;
   let unsubRoom = null;
@@ -531,5 +675,32 @@
   initJeopardy();
   await createRoom();
 </script>
+<!-- QR Modal -->
+<div class="overlay" id="qrOverlay" aria-modal="true" role="dialog">
+  <div class="modal" style="max-width:560px;text-align:center">
+    <header>
+      <div>
+        <h2>Join Buzzer</h2>
+        <div class="meta">
+          Scan to open player page<br>
+          Room code: <span class="mono" id="qrRoomText">—</span>
+        </div>
+      </div>
+      <button class="secondary" id="btnCloseQR">Close</button>
+    </header>
+
+    <canvas id="qrCanvas"
+      style="width:min(420px,80vw);height:auto;
+             background:#fff;padding:16px;border-radius:18px;
+             border:1px solid var(--border);">
+    </canvas>
+
+    <div class="small mono" id="qrUrlText"
+         style="word-break:break-all;margin-top:12px">
+      —
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
