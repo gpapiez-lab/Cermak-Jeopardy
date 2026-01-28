@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Jeopardy + Firebase Buzzer</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/qrcode@1.5.4/build/qrcode.min.js"></script>
   <style>
     :root{--bg:#0b1020;--panel:#111a33;--tile:#17306e;--tile2:#10265c;--accent:#f7c948;--text:#e9eefc;--muted:#a9b5d6;--danger:#ff5d5d;--good:#46d39a;--border:rgba(255,255,255,.12);--shadow:0 10px 30px rgba(0,0,0,.35);--radius:16px;--font:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
     *{box-sizing:border-box}
@@ -219,12 +219,37 @@
 </div>
 
 <script type="module">
+  // Wait for QRCode library to be available
+  function waitForQRCode() {
+    return new Promise((resolve) => {
+      if (typeof QRCode !== 'undefined') {
+        resolve();
+        return;
+      }
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        if (typeof QRCode !== 'undefined') {
+          clearInterval(checkInterval);
+          resolve();
+        } else if (attempts > 50) { // 5 seconds max wait
+          clearInterval(checkInterval);
+          console.warn("QRCode library did not load in time");
+          resolve(); // Continue anyway
+        }
+      }, 100);
+    });
+  }
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
     getFirestore, doc, setDoc, updateDoc, onSnapshot,
     serverTimestamp, collection, query, onSnapshot as onSnapQuery
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  // Wait for QRCode to load
+  await waitForQRCode();
 
   // ✅ YOUR FIREBASE CONFIG
   const firebaseConfig = {
@@ -451,8 +476,8 @@ btnShowQR.onclick = () => {
 
   // Check if QRCode library is loaded
   if (typeof QRCode === 'undefined') {
-    alert("QR Code library not loaded. Please refresh the page.");
-    console.error("QRCode library not found");
+    console.error("QRCode library not found. Available globals:", Object.keys(window).filter(k => k.toLowerCase().includes('qr')));
+    alert("QR Code library not loaded. Please refresh the page.\n\nIf the problem persists, check your internet connection.");
     return;
   }
 
