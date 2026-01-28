@@ -94,7 +94,7 @@
     }
     #startButton {
       position: absolute;
-      bottom: 5%;
+      bottom: 2%;
       left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(180deg, #f7c948, #d4a83a);
@@ -297,6 +297,9 @@
 </div>
 
 <script type="module">
+  // IMPORTANT: Game initialization is deferred until Start button is clicked
+  // This prevents setupTeams() from running on page load
+  
   // Wait for QRCode library to be available
   function waitForQRCode() {
     return new Promise((resolve) => {
@@ -330,8 +333,8 @@
 
   // Wait for QRCode to load
   await waitForQRCode();
-
-  // ✅ YOUR FIREBASE CONFIG
+  
+  // Initialize Firebase (but don't create room yet)
   const firebaseConfig = {
     apiKey: "AIzaSyAadTD1tOCnYrqOP43dpeQpPBzlqv-JdvE",
     authDomain: "jeopardy-5956d.firebaseapp.com",
@@ -482,7 +485,15 @@ function makeQR(canvas, text) {
     final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
   };
 
+  let gameStarted = false; // Flag to prevent premature initialization
+  
   function setupTeams(){
+    // This function should ONLY be called when Start button is clicked
+    if (!gameStarted) {
+      console.warn('setupTeams called before game start - this should not happen!');
+      return;
+    }
+    
     let count;
     do { count = parseInt(prompt("How many teams?", "4") || "", 10); }
     while(!Number.isInteger(count) || count < 1);
@@ -865,11 +876,15 @@ btnShowQR.onclick = () => {
     const splashScreen = document.getElementById('splashScreen');
     if (startButton && splashScreen) {
       startButton.onclick = () => {
+        // Set flag to allow game initialization
+        gameStarted = true;
+        
         // Hide splash screen
         splashScreen.classList.add('hidden');
         document.body.classList.add('game-started');
         
         // Now initialize the game (setup teams, etc.)
+        // This is the ONLY place setupTeams() should be called
         setupTeams();
         initJeopardy();
         createRoom();
@@ -877,14 +892,44 @@ btnShowQR.onclick = () => {
     }
   }
 
-  // START - Play theme music when splash screen appears
-  // Don't initialize game until start button is clicked
+  // START - Initialize UI and start theme music
+  // CRITICAL: Don't initialize game until start button is clicked
+  // setupTeams() MUST ONLY be called from the start button handler above
+  
   bindUI();
   
-  // Start theme music when page loads (splash screen is showing)
-  setTimeout(() => {
-    playSound('theme');
-  }, 500);
+  // Start theme music when splash screen appears
+  // Try multiple approaches to handle autoplay restrictions
+  function startThemeMusic() {
+    const themeAudio = document.getElementById('audioTheme');
+    if (themeAudio) {
+      themeAudio.volume = 0.7;
+      const playPromise = themeAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(err => {
+          console.log('Theme music autoplay blocked, will play on first click');
+          // Play on first user interaction
+          const playOnClick = () => {
+            themeAudio.play().catch(() => {});
+            document.removeEventListener('click', playOnClick);
+            document.removeEventListener('touchstart', playOnClick);
+          };
+          document.addEventListener('click', playOnClick, { once: true });
+          document.addEventListener('touchstart', playOnClick, { once: true });
+        });
+      }
+    }
+  }
+  
+  // Try to start music when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(startThemeMusic, 200);
+    });
+  } else {
+    // DOM already loaded
+    setTimeout(startThemeMusic, 500);
+  }
 </script>
 </body>
 </html>
