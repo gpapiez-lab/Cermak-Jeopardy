@@ -76,9 +76,87 @@
       border-radius:22px;
       border:1px solid rgba(0,0,0,.25);
     }
+
+    /* Splash Screen */
+    #splashScreen {
+      position: fixed;
+      inset: 0;
+      background: url('Cermak Jeopardy splash.png') center/cover no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.5s ease-out;
+    }
+    #splashScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #startButton {
+      position: absolute;
+      bottom: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #f7c948, #d4a83a);
+      color: #0b1020;
+      border: 3px solid #fff;
+      border-radius: 999px;
+      padding: 20px 60px;
+      font-size: 32px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 20px rgba(247,201,72,.5);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.2s;
+    }
+    #startButton:hover {
+      transform: translateX(-50%) scale(1.05);
+      box-shadow: 0 15px 40px rgba(0,0,0,.6), 0 0 30px rgba(247,201,72,.7);
+    }
+    #startButton:active {
+      transform: translateX(-50%) scale(0.98);
+    }
+
+    /* Hide main content until game starts */
+    body.game-started header,
+    body.game-started main {
+      display: block;
+    }
+    body:not(.game-started) header,
+    body:not(.game-started) main {
+      display: none;
+    }
   </style>
 </head>
 <body>
+<!-- Splash Screen -->
+<div id="splashScreen">
+  <button id="startButton">Start</button>
+</div>
+
+<!-- Audio Elements -->
+<audio id="audioTheme" loop>
+  <source src="Resources/jeopardy_theme.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioCorrect">
+  <source src="Resources/correct.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioIncorrect">
+  <source src="Resources/incorrect.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioDailyDouble">
+  <source src="Resources/daily_double.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioFinalJeopardy">
+  <source src="Resources/final_jeopardy.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioQuestionSong">
+  <source src="Resources/question_song.mp3" type="audio/mpeg">
+</audio>
+<audio id="audioTimesUp">
+  <source src="Resources/times_up.mp3" type="audio/mpeg">
+</audio>
 <header>
   <div>
     <h1 id="gameTitle">Jeopardy</h1>
@@ -621,6 +699,13 @@ btnShowQR.onclick = () => {
     $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
     renderQTeams();
     qOverlay.classList.add("show");
+    
+    // Play sound effects
+    if(clue.dd) {
+      playSound('dailyDouble');
+    } else {
+      playSound('questionSong');
+    }
   }
 
   function renderQTeams(){
@@ -637,7 +722,12 @@ btnShowQR.onclick = () => {
     });
   }
 
-  function closeQ(){ qOverlay.classList.remove("show"); state.current=null; }
+  function closeQ(){ 
+    qOverlay.classList.remove("show"); 
+    state.current=null;
+    // Stop question song when closing
+    stopSound('questionSong');
+  }
   function markUsed(c,r){
     state.used.add(keyOf(c,r));
     const tile = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
@@ -661,6 +751,10 @@ btnShowQR.onclick = () => {
     state.scores[state.activeTeam] += correct ? delta : -delta;
     updateScores();
     markUsed(c,r);
+    
+    // Play sound effect
+    playSound(correct ? 'correct' : 'incorrect');
+    
     closeQ();
   }
 
@@ -669,6 +763,9 @@ btnShowQR.onclick = () => {
     $("#fPrompt").textContent = GAME.final.q;
     $("#fAnswer").textContent = GAME.final.a;
     $("#fReveal").classList.remove("show");
+    
+    // Play Final Jeopardy sound
+    playSound('finalJeopardy');
 
     const grid=$("#finalGrid");
     grid.innerHTML = GAME.teams.map(t=>`
@@ -718,6 +815,35 @@ btnShowQR.onclick = () => {
     alert("Final wagers applied.");
   }
 
+  /* =========================
+     SOUND EFFECTS
+     ========================= */
+  const audioElements = {
+    theme: document.getElementById('audioTheme'),
+    correct: document.getElementById('audioCorrect'),
+    incorrect: document.getElementById('audioIncorrect'),
+    dailyDouble: document.getElementById('audioDailyDouble'),
+    finalJeopardy: document.getElementById('audioFinalJeopardy'),
+    questionSong: document.getElementById('audioQuestionSong'),
+    timesUp: document.getElementById('audioTimesUp')
+  };
+
+  function playSound(soundName) {
+    const audio = audioElements[soundName];
+    if (audio) {
+      audio.currentTime = 0; // Reset to start
+      audio.play().catch(err => console.warn(`Could not play ${soundName}:`, err));
+    }
+  }
+
+  function stopSound(soundName) {
+    const audio = audioElements[soundName];
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }
+
   function bindUI(){
     $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Host: Hide DD":"Host: Show DD"; renderBoard(); };
     $("#btnReset").onclick=()=>{ if(!confirm("Reset board & scores?"))return; state.used=new Set(); GAME.teams.forEach(t=>state.scores[t]=0); state.final={wagers:{},correct:{}}; renderScoreboard(); renderBoard(); };
@@ -733,12 +859,29 @@ btnShowQR.onclick = () => {
     fOverlay.onclick=(e)=>{ if(e.target===fOverlay) fOverlay.classList.remove("show"); };
     $("#btnRevealFinal").onclick=()=>$("#fReveal").classList.toggle("show");
     $("#btnApplyFinal").onclick=applyFinal;
+
+    // Start button handler
+    const startButton = document.getElementById('startButton');
+    const splashScreen = document.getElementById('splashScreen');
+    if (startButton && splashScreen) {
+      startButton.onclick = () => {
+        // Hide splash screen
+        splashScreen.classList.add('hidden');
+        document.body.classList.add('game-started');
+        
+        // Start theme music
+        playSound('theme');
+      };
+    }
   }
 
-  // START
+  // START - Initialize game but keep it hidden until start button is clicked
   setupTeams();
   initJeopardy();
   await createRoom();
+  
+  // Bind UI including start button
+  bindUI();
 </script>
 </body>
 </html>
