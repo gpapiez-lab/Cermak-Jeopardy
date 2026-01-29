@@ -127,6 +127,45 @@
     body:not(.game-started) main {
       display: none;
     }
+
+    /* Buzz-in splash (CERMAK Jeopardy style) */
+    #buzzInOverlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 20%, #1a2a66 0%, #0b1020 40%, #1a1a2e 70%, #16213e 100%);
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% 20%, rgba(247,201,72,.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, #2a1a4a 0%, transparent 40%),
+        radial-gradient(1200px 800px at 20% 10%, #1a2a66 0%, #0b1020 50%, #070a14 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 60;
+      text-align: center;
+    }
+    #buzzInOverlay.show { display: flex; }
+    #buzzInOverlay .buzz-title {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(247,201,72,.5);
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    #buzzInOverlay .buzz-sub {
+      font-size: clamp(1.2rem, 4vw, 2rem);
+      color: var(--accent);
+      font-weight: 800;
+      margin-bottom: 24px;
+    }
+    #buzzInOverlay .buzz-instruction {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -182,6 +221,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button id="btnNewRoom" style="display:none">New Room</button>
           <button class="secondary" id="btnShowQR">Show QR</button>
+          <button class="good" id="btnStartGame" style="display:none">Start Game</button>
           <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
         </div>
       </div>
@@ -296,6 +336,15 @@
     <div id="qrPlayerList" style="margin-top:14px;font-size:14px;color:var(--muted)">
       Players joined: <span id="qrPlayerNames">None yet</span>
     </div>
+  </div>
+</div>
+
+<!-- Buzz-in splash (whoever buzzes first starts) -->
+<div class="overlay" id="buzzInOverlay" aria-modal="true" role="dialog">
+  <div style="text-align:center;max-width:720px">
+    <div class="buzz-title">CERMAK Jeopardy</div>
+    <div class="buzz-sub">Buzz in!</div>
+    <div class="buzz-instruction">Whoever buzzes in first will be the team that starts the game. Players: tap BUZZ on your device when you're ready.</div>
   </div>
 </div>
 
@@ -533,6 +582,8 @@ function makeQR(canvas, text) {
   let roomCode = null;
   let unsubRoom = null;
   let unsubPlayers = null;
+  let buzzInPhaseActive = false;
+  let onFirstBuzzCallback = null; // Set by game engine when buzz-in overlay is shown
 
   function randCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
 
@@ -584,7 +635,15 @@ function makeQR(canvas, text) {
         return;
       }
       const d = snap.data();
-      setBuzzerUI({ locked: !!d.locked, winnerName: d.winnerName ?? null });
+      const locked = !!d.locked;
+      const winnerName = d.winnerName ?? null;
+      setBuzzerUI({ locked, winnerName });
+      
+      // During buzz-in phase: first player to buzz becomes active team
+      if (buzzInPhaseActive && locked && winnerName && typeof onFirstBuzzCallback === 'function') {
+        buzzInPhaseActive = false;
+        onFirstBuzzCallback(winnerName);
+      }
     });
 
     const playersRef = collection(db, "rooms", code, "players");
@@ -665,14 +724,17 @@ function makeQR(canvas, text) {
   }
   
   function closeQRAndStartGame(playerNames) {
+    // Stop theme music when leaving QR screen
+    stopSound('theme');
+    
     // Close QR overlay
     qrOverlay.classList.remove('show');
     
     // Use player names as teams
     if (playerNames && playerNames.length > 0) {
       GAME.teams = playerNames.slice(0, MAX_PLAYERS); // Limit to max players
-      console.log('Starting game with teams:', GAME.teams);
-      initJeopardy();
+      console.log('Teams set:', GAME.teams);
+      initJeopardy(); // Shows board with hidden categories + Start Game button
     } else {
       // Just close, don't start game
       console.log('QR closed but no players to start game with');
@@ -680,6 +742,17 @@ function makeQR(canvas, text) {
   }
 
   btnNewRoom.onclick = createRoom;
+
+  const btnStartGame = document.getElementById("btnStartGame");
+  const buzzInOverlay = document.getElementById("buzzInOverlay");
+  if (btnStartGame && buzzInOverlay) {
+    btnStartGame.onclick = async () => {
+      if (!roomCode) return;
+      await updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null });
+      buzzInPhaseActive = true;
+      buzzInOverlay.classList.add("show");
+    };
+  }
 
   btnResetBuzz.onclick = async ()=>{
     if(!roomCode) return;
@@ -796,7 +869,7 @@ function makeQR(canvas, text) {
   const qOverlay = $("#qOverlay");
   const fOverlay = $("#fOverlay");
 
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} } };
+  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, buzzInPhase:false };
   const keyOf=(c,r)=>`${c}-${r}`;
   const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
   const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
@@ -808,6 +881,28 @@ function makeQR(canvas, text) {
 
     GAME.teams.forEach(t=> state.scores[t]=0);
     state.activeTeam = GAME.teams[0];
+    state.categoriesRevealed = false; // Hidden until first buzz
+    state.buzzInPhase = false;
+
+    // Show Start Game button (host clicks to show buzz-in splash)
+    const btnStartGameEl = document.getElementById("btnStartGame");
+    if (btnStartGameEl) btnStartGameEl.style.display = "inline-block";
+
+    // When first player buzzes during buzz-in phase, this runs
+    onFirstBuzzCallback = (winnerName) => {
+      state.activeTeam = winnerName;
+      state.categoriesRevealed = true;
+      const overlay = document.getElementById("buzzInOverlay");
+      if (overlay) overlay.classList.remove("show");
+      if (roomCode) {
+        updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null }).catch(()=>{});
+      }
+      setBuzzerUI({ locked: false, winnerName: null });
+      renderBoard();
+      renderScoreboard();
+      const btn = document.getElementById("btnStartGame");
+      if (btn) btn.style.display = "none";
+    };
 
     renderScoreboard(); renderBoard(); bindUI();
   }
@@ -843,7 +938,8 @@ function makeQR(canvas, text) {
   function renderBoard(){
     boardEl.style.gridTemplateColumns = `repeat(${GAME.categories.length}, minmax(140px,1fr))`;
     const cells=[];
-    GAME.categories.forEach(cat=>cells.push(`<div class="cell category">${esc(cat.name)}</div>`));
+    // Hide categories with blank tiles until buzz-in is done
+    GAME.categories.forEach(cat=>cells.push(`<div class="cell category">${state.categoriesRevealed ? esc(cat.name) : ""}</div>`));
     for(let r=0;r<GAME.values.length;r++){
       for(let c=0;c<GAME.categories.length;c++){
         const used = state.used.has(keyOf(c,r));
