@@ -33,6 +33,7 @@
     .cell.category{background:linear-gradient(180deg,#2a3f8f,#1b2f74);font-weight:900;letter-spacing:.4px;text-transform:uppercase;font-size:13px;}
     .cell.question{cursor:pointer;font-weight:900;font-size:20px;color:var(--accent);}
     .cell.question.used{cursor:not-allowed;filter:grayscale(.9) brightness(.75);color:rgba(247,201,72,.35);}
+    .cell.question.cell-hidden{color:transparent;user-select:none;}
     .badge{position:absolute;top:8px;right:8px;font-size:11px;color:#0b1020;background:var(--accent);padding:3px 8px;border-radius:999px;font-weight:900;}
     .pill{display:inline-flex;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);font-weight:700;color:var(--muted);gap:8px;align-items:center;}
     .small{font-size:12px;color:var(--muted)}
@@ -168,6 +169,44 @@
       max-width: 640px;
       line-height: 1.5;
     }
+
+    /* View Categories overlay */
+    #viewCategoriesOverlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #0b1020 0%, #1a2a66 50%, #0b1020 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 55;
+    }
+    #viewCategoriesOverlay.show { display: flex; }
+    #viewCategoriesOverlay .category-slide {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 900;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      transform: translateX(-100vw);
+      opacity: 0;
+      transition: transform 0.6s ease-out, opacity 0.5s ease-out;
+    }
+    #viewCategoriesOverlay .category-slide.visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    #viewCategoriesOverlay .category-slide.exit {
+      transform: translateX(100vw);
+      opacity: 0;
+    }
+    #viewCategoriesOverlay #btnCategoryNext {
+      margin-top: 48px;
+      padding: 16px 48px;
+      font-size: 20px;
+      font-weight: 800;
+    }
   </style>
 </head>
 <body>
@@ -223,7 +262,9 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button id="btnNewRoom" style="display:none">New Room</button>
           <button class="secondary" id="btnShowQR">Show QR</button>
+          <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
           <button class="good" id="btnStartGame" style="display:none">Start Game</button>
+          <button class="good" id="btnRevealBoard" style="display:none">Reveal Board</button>
           <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
         </div>
       </div>
@@ -348,6 +389,12 @@
     <div class="buzz-sub">Buzz in!</div>
     <div class="buzz-instruction">Players: tap BUZZ on your device when you're ready to be the first team to start the game.</div>
   </div>
+</div>
+
+<!-- View Categories (slide-through categories on blue screen) -->
+<div id="viewCategoriesOverlay" aria-modal="true" role="dialog">
+  <div id="categorySlideText" class="category-slide"></div>
+  <button class="good" id="btnCategoryNext" style="display:none">Next</button>
 </div>
 
 <script type="module">
@@ -871,7 +918,7 @@ function makeQR(canvas, text) {
   const qOverlay = $("#qOverlay");
   const fOverlay = $("#fOverlay");
 
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, buzzInPhase:false };
+  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, questionTilesRevealed:false, buzzInPhase:false };
   const keyOf=(c,r)=>`${c}-${r}`;
   const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
   const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
@@ -893,7 +940,9 @@ function makeQR(canvas, text) {
     // When first player buzzes during buzz-in phase, this runs
     onFirstBuzzCallback = (winnerName) => {
       state.activeTeam = winnerName;
-      state.categoriesRevealed = true;
+      // Keep categories and question tiles blank until View Categories + Reveal Board
+      state.categoriesRevealed = false;
+      state.questionTilesRevealed = false;
       const overlay = document.getElementById("buzzInOverlay");
       if (overlay) overlay.classList.remove("show");
       if (roomCode) {
@@ -904,9 +953,98 @@ function makeQR(canvas, text) {
       renderScoreboard();
       const btn = document.getElementById("btnStartGame");
       if (btn) btn.style.display = "none";
+      const btnViewCat = document.getElementById("btnViewCategories");
+      if (btnViewCat) btnViewCat.style.display = "inline-block";
+      const btnReveal = document.getElementById("btnRevealBoard");
+      if (btnReveal) btnReveal.style.display = "inline-block";
     };
 
     renderScoreboard(); renderBoard(); bindUI();
+  }
+
+  /* ========== View Categories (slide-through on blue screen) ========== */
+  let viewCategoriesIndex = 0;
+  function openViewCategories() {
+    viewCategoriesIndex = 0;
+    const overlay = document.getElementById("viewCategoriesOverlay");
+    const textEl = document.getElementById("categorySlideText");
+    const nextBtn = document.getElementById("btnCategoryNext");
+    if (!overlay || !textEl || !nextBtn) return;
+    overlay.classList.add("show");
+    textEl.textContent = GAME.categories[0].name;
+    textEl.classList.remove("exit", "visible");
+    requestAnimationFrame(() => {
+      textEl.classList.add("visible");
+    });
+    nextBtn.style.display = "inline-block";
+    nextBtn.textContent = GAME.categories.length > 1 ? "Next" : "Done";
+  }
+
+  function nextViewCategory() {
+    const textEl = document.getElementById("categorySlideText");
+    const nextBtn = document.getElementById("btnCategoryNext");
+    if (!textEl || !nextBtn) return;
+    textEl.classList.remove("visible");
+    textEl.classList.add("exit");
+    setTimeout(() => {
+      viewCategoriesIndex++;
+      if (viewCategoriesIndex >= GAME.categories.length) {
+        const overlay = document.getElementById("viewCategoriesOverlay");
+        if (overlay) overlay.classList.remove("show");
+        state.categoriesRevealed = true;
+        renderBoard();
+        nextBtn.style.display = "none";
+        return;
+      }
+      textEl.textContent = GAME.categories[viewCategoriesIndex].name;
+      textEl.classList.remove("exit", "visible"); // reset to left-offscreen
+      nextBtn.textContent = viewCategoriesIndex === GAME.categories.length - 1 ? "Done" : "Next";
+      requestAnimationFrame(() => {
+        textEl.classList.add("visible"); // slide in left to right
+      });
+    }, 550);
+  }
+
+  /* ========== Reveal Board (random animated reveal with sound) ========== */
+  async function revealBoardAnimated() {
+    const cells = [];
+    for (let r = 0; r < GAME.values.length; r++) {
+      for (let c = 0; c < GAME.categories.length; c++) {
+        cells.push({ c, r });
+      }
+    }
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cells[i], cells[j]] = [cells[j], cells[i]];
+    }
+    const btnReveal = document.getElementById("btnRevealBoard");
+    if (btnReveal) btnReveal.disabled = true;
+    const audioCorrect = document.getElementById("audioCorrect");
+    for (const { c, r } of cells) {
+      const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
+      if (cell && !cell.classList.contains("used")) {
+        cell.classList.remove("cell-hidden");
+        cell.textContent = "$" + GAME.values[r];
+        const clue = GAME.categories[c].clues[r];
+        if (state.showDD && clue.dd) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = "DD";
+          cell.appendChild(badge);
+        }
+        if (audioCorrect) {
+          const clone = audioCorrect.cloneNode();
+          clone.volume = 0.25;
+          clone.play().catch(() => {});
+        }
+        await new Promise(resolve => setTimeout(resolve, 120));
+      }
+    }
+    state.questionTilesRevealed = true;
+    if (btnReveal) {
+      btnReveal.disabled = false;
+      btnReveal.style.display = "none";
+    }
   }
 
   function renderScoreboard(){
@@ -947,10 +1085,11 @@ function makeQR(canvas, text) {
         const used = state.used.has(keyOf(c,r));
         const clue = GAME.categories[c].clues[r];
         const show = state.showDD && clue.dd;
+        const showValue = state.questionTilesRevealed;
         cells.push(`
-          <div class="cell question ${used?"used":""}" data-c="${c}" data-r="${r}" tabindex="0">
-            ${used? "" : "$"+GAME.values[r]}
-            ${show? `<span class="badge">DD</span>`:""}
+          <div class="cell question ${used?"used":""} ${!showValue?"cell-hidden":""}" data-c="${c}" data-r="${r}" tabindex="0">
+            ${used ? "" : (showValue ? "$"+GAME.values[r] : "")}
+            ${show && showValue ? `<span class="badge">DD</span>` : ""}
           </div>
         `);
       }
@@ -1011,7 +1150,7 @@ function makeQR(canvas, text) {
   function markUsed(c,r){
     state.used.add(keyOf(c,r));
     const tile = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
-    if(tile){ tile.classList.add("used"); tile.textContent=""; }
+    if(tile){ tile.classList.add("used"); tile.innerHTML=""; }
   }
   function updateScores(){
     GAME.teams.forEach(t=>{
@@ -1139,6 +1278,10 @@ function makeQR(canvas, text) {
     fOverlay.onclick=(e)=>{ if(e.target===fOverlay) fOverlay.classList.remove("show"); };
     $("#btnRevealFinal").onclick=()=>$("#fReveal").classList.toggle("show");
     $("#btnApplyFinal").onclick=applyFinal;
+
+    $("#btnViewCategories").onclick=openViewCategories;
+    document.getElementById("btnCategoryNext").onclick=nextViewCategory;
+    $("#btnRevealBoard").onclick=()=>revealBoardAnimated();
 
     // Start button handler
     const startButton = document.getElementById('startButton');
