@@ -978,6 +978,8 @@ function makeQR(canvas, text) {
     });
     nextBtn.style.display = "inline-block";
     nextBtn.textContent = GAME.categories.length > 1 ? "Next" : "Done";
+    // Theme song plays while categories are sliding in
+    playSound("theme");
   }
 
   function nextViewCategory() {
@@ -989,6 +991,8 @@ function makeQR(canvas, text) {
     setTimeout(() => {
       viewCategoriesIndex++;
       if (viewCategoriesIndex >= GAME.categories.length) {
+        // Last category done sliding in — stop theme song
+        stopSound("theme");
         const overlay = document.getElementById("viewCategoriesOverlay");
         if (overlay) overlay.classList.remove("show");
         state.categoriesRevealed = true;
@@ -1020,10 +1024,7 @@ function makeQR(canvas, text) {
     const btnReveal = document.getElementById("btnRevealBoard");
     if (btnReveal) btnReveal.disabled = true;
 
-    // Start theme song during reveal
-    playSound("theme");
-
-    const REVEAL_DELAY_MS = 380; // Slower so each sound effect is distinct
+    const REVEAL_DELAY_MS = 240; // Middle ground: distinct sounds, not too slow
     for (const { c, r } of cells) {
       const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
       if (cell && !cell.classList.contains("used")) {
@@ -1045,8 +1046,6 @@ function makeQR(canvas, text) {
       }
     }
 
-    // Stop theme song after last tile is revealed
-    stopSound("theme");
     state.questionTilesRevealed = true;
     if (btnReveal) {
       btnReveal.disabled = false;
