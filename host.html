@@ -184,11 +184,11 @@
     }
     #viewCategoriesOverlay.show { display: flex; }
     #viewCategoriesOverlay .category-slide {
-      font-size: clamp(2rem, 6vw, 4rem);
+      font-size: clamp(4rem, 18vw, 10rem);
       font-weight: 900;
       color: var(--accent);
       text-transform: uppercase;
-      letter-spacing: 4px;
+      letter-spacing: 6px;
       transform: translateX(-100vw);
       opacity: 0;
       transition: transform 0.6s ease-out, opacity 0.5s ease-out;
@@ -1019,7 +1019,6 @@ function makeQR(canvas, text) {
     }
     const btnReveal = document.getElementById("btnRevealBoard");
     if (btnReveal) btnReveal.disabled = true;
-    const audioCorrect = document.getElementById("audioCorrect");
     for (const { c, r } of cells) {
       const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
       if (cell && !cell.classList.contains("used")) {
@@ -1032,11 +1031,11 @@ function makeQR(canvas, text) {
           badge.textContent = "DD";
           cell.appendChild(badge);
         }
-        if (audioCorrect) {
-          const clone = audioCorrect.cloneNode();
-          clone.volume = 0.25;
-          clone.play().catch(() => {});
-        }
+        // Play sound per tile (new Audio so multiple can play in quick succession)
+        const correctSrc = document.querySelector("#audioCorrect source")?.getAttribute("src") || "Resources/correct.mp3";
+        const beep = new Audio(correctSrc);
+        beep.volume = 0.3;
+        beep.play().catch(() => {});
         await new Promise(resolve => setTimeout(resolve, 120));
       }
     }
