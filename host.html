@@ -1019,6 +1019,11 @@ function makeQR(canvas, text) {
     }
     const btnReveal = document.getElementById("btnRevealBoard");
     if (btnReveal) btnReveal.disabled = true;
+
+    // Start theme song during reveal
+    playSound("theme");
+
+    const REVEAL_DELAY_MS = 380; // Slower so each sound effect is distinct
     for (const { c, r } of cells) {
       const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
       if (cell && !cell.classList.contains("used")) {
@@ -1031,14 +1036,17 @@ function makeQR(canvas, text) {
           badge.textContent = "DD";
           cell.appendChild(badge);
         }
-        // Play sound per tile (new Audio so multiple can play in quick succession)
+        // Play sound per tile
         const correctSrc = document.querySelector("#audioCorrect source")?.getAttribute("src") || "Resources/correct.mp3";
         const beep = new Audio(correctSrc);
         beep.volume = 0.3;
         beep.play().catch(() => {});
-        await new Promise(resolve => setTimeout(resolve, 120));
+        await new Promise(resolve => setTimeout(resolve, REVEAL_DELAY_MS));
       }
     }
+
+    // Stop theme song after last tile is revealed
+    stopSound("theme");
     state.questionTilesRevealed = true;
     if (btnReveal) {
       btnReveal.disabled = false;
