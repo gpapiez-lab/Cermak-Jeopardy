@@ -1024,15 +1024,29 @@ function makeQR(canvas, text) {
       [cells[i], cells[j]] = [cells[j], cells[i]];
     }
 
-    // Play jeopardy-board-fill.mp3 for the duration of the reveal
     const boardFillAudio = document.getElementById("audioBoardFill");
+    let durationSec = 0;
+    if (boardFillAudio) {
+      if (boardFillAudio.readyState >= 1 && Number.isFinite(boardFillAudio.duration) && boardFillAudio.duration > 0) {
+        durationSec = boardFillAudio.duration;
+      } else {
+        durationSec = await new Promise((resolve) => {
+          const onLoaded = () => resolve(boardFillAudio.duration && Number.isFinite(boardFillAudio.duration) ? boardFillAudio.duration : 0);
+          boardFillAudio.addEventListener("loadedmetadata", onLoaded, { once: true });
+          boardFillAudio.load();
+          setTimeout(() => { boardFillAudio.removeEventListener("loadedmetadata", onLoaded); resolve(0); }, 3000);
+        });
+      }
+    }
+    const numTiles = cells.length;
+    const delayMs = numTiles <= 1 ? 0 : (durationSec > 0 ? (durationSec * 1000) / (numTiles - 1) : 240);
+
     if (boardFillAudio) {
       boardFillAudio.currentTime = 0;
       boardFillAudio.volume = 0.7;
       boardFillAudio.play().catch(() => {});
     }
 
-    const REVEAL_DELAY_MS = 240;
     for (const { c, r } of cells) {
       const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
       if (cell && !cell.classList.contains("used")) {
@@ -1045,15 +1059,10 @@ function makeQR(canvas, text) {
           badge.textContent = "DD";
           cell.appendChild(badge);
         }
-        await new Promise(resolve => setTimeout(resolve, REVEAL_DELAY_MS));
+        if (delayMs > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
 
-    // Stop board-fill sound when reveal is done
-    if (boardFillAudio) {
-      boardFillAudio.pause();
-      boardFillAudio.currentTime = 0;
-    }
     state.questionTilesRevealed = true;
   }
 
