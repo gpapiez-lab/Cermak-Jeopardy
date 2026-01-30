@@ -237,6 +237,9 @@
 <audio id="audioTimesUp">
   <source src="Resources/times_up.mp3" type="audio/mpeg">
 </audio>
+<audio id="audioBoardFill">
+  <source src="Resources/jeopardy-board-fill.mp3" type="audio/mpeg">
+</audio>
 <header>
   <div>
     <h1 id="gameTitle">Jeopardy</h1>
@@ -264,7 +267,6 @@
           <button class="secondary" id="btnShowQR">Show QR</button>
           <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
           <button class="good" id="btnStartGame" style="display:none">Start Game</button>
-          <button class="good" id="btnRevealBoard" style="display:none">Reveal Board</button>
           <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
         </div>
       </div>
@@ -955,8 +957,8 @@ function makeQR(canvas, text) {
       if (btn) btn.style.display = "none";
       const btnViewCat = document.getElementById("btnViewCategories");
       if (btnViewCat) btnViewCat.style.display = "inline-block";
-      const btnReveal = document.getElementById("btnRevealBoard");
-      if (btnReveal) btnReveal.style.display = "inline-block";
+      // Board reveal runs automatically with jeopardy-board-fill sound
+      revealBoardAnimated();
     };
 
     renderScoreboard(); renderBoard(); bindUI();
@@ -1009,7 +1011,7 @@ function makeQR(canvas, text) {
     }, 550);
   }
 
-  /* ========== Reveal Board (random animated reveal with sound) ========== */
+  /* ========== Reveal Board (random animated reveal, runs after first buzz) ========== */
   async function revealBoardAnimated() {
     const cells = [];
     for (let r = 0; r < GAME.values.length; r++) {
@@ -1021,10 +1023,16 @@ function makeQR(canvas, text) {
       const j = Math.floor(Math.random() * (i + 1));
       [cells[i], cells[j]] = [cells[j], cells[i]];
     }
-    const btnReveal = document.getElementById("btnRevealBoard");
-    if (btnReveal) btnReveal.disabled = true;
 
-    const REVEAL_DELAY_MS = 240; // Middle ground: distinct sounds, not too slow
+    // Play jeopardy-board-fill.mp3 for the duration of the reveal
+    const boardFillAudio = document.getElementById("audioBoardFill");
+    if (boardFillAudio) {
+      boardFillAudio.currentTime = 0;
+      boardFillAudio.volume = 0.7;
+      boardFillAudio.play().catch(() => {});
+    }
+
+    const REVEAL_DELAY_MS = 240;
     for (const { c, r } of cells) {
       const cell = boardEl.querySelector(`.cell.question[data-c="${c}"][data-r="${r}"]`);
       if (cell && !cell.classList.contains("used")) {
@@ -1037,20 +1045,16 @@ function makeQR(canvas, text) {
           badge.textContent = "DD";
           cell.appendChild(badge);
         }
-        // Play sound per tile
-        const correctSrc = document.querySelector("#audioCorrect source")?.getAttribute("src") || "Resources/correct.mp3";
-        const beep = new Audio(correctSrc);
-        beep.volume = 0.3;
-        beep.play().catch(() => {});
         await new Promise(resolve => setTimeout(resolve, REVEAL_DELAY_MS));
       }
     }
 
-    state.questionTilesRevealed = true;
-    if (btnReveal) {
-      btnReveal.disabled = false;
-      btnReveal.style.display = "none";
+    // Stop board-fill sound when reveal is done
+    if (boardFillAudio) {
+      boardFillAudio.pause();
+      boardFillAudio.currentTime = 0;
     }
+    state.questionTilesRevealed = true;
   }
 
   function renderScoreboard(){
@@ -1287,7 +1291,6 @@ function makeQR(canvas, text) {
 
     $("#btnViewCategories").onclick=openViewCategories;
     document.getElementById("btnCategoryNext").onclick=nextViewCategory;
-    $("#btnRevealBoard").onclick=()=>revealBoardAnimated();
 
     // Start button handler
     const startButton = document.getElementById('startButton');
