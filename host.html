@@ -45,6 +45,10 @@
     .modal h2{margin:0;font-size:16px}
     .meta{color:var(--muted);font-size:13px}
     .prompt{margin:14px 0;font-size:28px;font-weight:900;line-height:1.15;text-align:center;padding:18px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.18);}
+    .q-clue-images{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:10px 0;}
+    .q-clue-images:not(:has(img[src])){display:none;}
+    .q-clue-images img{display:none;max-width:100%;max-height:280px;object-fit:contain;border-radius:12px;border:1px solid var(--border);}
+    .q-clue-images img[src]{display:block;}
     .reveal{margin:12px auto 0;max-width:740px;display:none;border-top:1px solid var(--border);padding-top:12px;}
     .reveal.show{display:block}
     .reveal .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
@@ -351,7 +355,10 @@
     </header>
 
     <div class="prompt" id="qPrompt"></div>
-    <img id="qClueImage" alt="" style="display:none;max-width:100%;max-height:280px;object-fit:contain;margin:10px auto;border-radius:12px;border:1px solid var(--border);" />
+    <div id="qClueImages" class="q-clue-images">
+      <img id="qClueImage1" alt="" />
+      <img id="qClueImage2" alt="" />
+    </div>
 
     <div class="reveal" id="qReveal">
       <div class="label">Answer</div>
@@ -680,13 +687,20 @@ function makeQR(canvas, text) {
               clues.push({ q: "", a: "", dd: false });
               continue;
             }
-            const image = clue.image != null ? clue.image : (clue.images && clue.images[0] && clue.images[0].src);
+            // Support image (string), images (array of strings), or images (array of {src})
+            const rawImages = clue.images || (clue.image != null ? [clue.image] : []);
+            const images = [];
+            for (let i = 0; i < Math.min(2, rawImages.length); i++) {
+              const item = rawImages[i];
+              const path = typeof item === "string" ? item : (item && item.src);
+              if (path) images.push(path);
+            }
             const out = {
               q: clue.question != null ? clue.question : clue.q,
               a: clue.answer != null ? clue.answer : clue.a,
               dd: ddSet.has(`${c}-${r}`)
             };
-            if (image) out.image = image;
+            if (images.length) out.images = images;
             if (clue.audio) out.audio = clue.audio;
             clues.push(out);
           }
@@ -1259,17 +1273,12 @@ function makeQR(canvas, text) {
     $("#qValuePill").textContent=money(value);
     $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
 
-    // Clue image: show only if clue has image
-    const img = document.getElementById("qClueImage");
-    if (img) {
-      if (clue.image) {
-        img.src = clue.image;
-        img.style.display = "block";
-      } else {
-        img.removeAttribute("src");
-        img.style.display = "none";
-      }
-    }
+    // Clue images: up to 2 (clue.images array or single clue.image)
+    const imgList = clue.images && clue.images.length ? clue.images : (clue.image ? [clue.image] : []);
+    const img1 = document.getElementById("qClueImage1");
+    const img2 = document.getElementById("qClueImage2");
+    if (img1) { if (imgList[0]) img1.src = imgList[0]; else img1.removeAttribute("src"); }
+    if (img2) { if (imgList[1]) img2.src = imgList[1]; else img2.removeAttribute("src"); }
 
     // Clue audio: play if clue has audio (assets in /assets/audio or /assets)
     if (clue.audio) {
