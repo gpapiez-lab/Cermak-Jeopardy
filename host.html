@@ -1037,7 +1037,7 @@ function makeQR(canvas, text) {
   const qOverlay = $("#qOverlay");
   const fOverlay = $("#fOverlay");
 
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, questionTilesRevealed:false, buzzInPhase:false, currentRound:0 };
+  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, questionTilesRevealed:false, buzzInPhase:false, currentRound:0, testingMode:false };
   const keyOf=(c,r)=>`${c}-${r}`;
   const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
   const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
@@ -1337,6 +1337,29 @@ function makeQR(canvas, text) {
 
     closeQ();
 
+    // When active team gets it wrong: normal = buzz-in for next team; testing = cycle to next team
+    if (!correct && GAME.teams && GAME.teams.length > 0) {
+      if (state.testingMode) {
+        const idx = GAME.teams.indexOf(state.activeTeam);
+        const nextIdx = (idx + 1) % GAME.teams.length;
+        state.activeTeam = GAME.teams[nextIdx];
+        renderScoreboard();
+      } else if (roomCode) {
+        buzzInPhaseActive = true;
+        onFirstBuzzCallback = (winnerName) => {
+          state.activeTeam = winnerName;
+          const overlay = document.getElementById("buzzInOverlay");
+          if (overlay) overlay.classList.remove("show");
+          updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null }).catch(()=>{});
+          setBuzzerUI({ locked: false, winnerName: null });
+          renderScoreboard();
+        };
+        updateDoc(doc(db,"rooms",roomCode), { locked:false, winnerName:null, winnerUid:null }).catch(()=>{});
+        const buzzOverlay = document.getElementById("buzzInOverlay");
+        if (buzzOverlay) buzzOverlay.classList.add("show");
+      }
+    }
+
     // If current round is fully played and Round 2 has categories, show Round 2 overlay
     const totalCells = GAME.categories.length * GAME.values.length;
     const hasRound2 = GAME.rounds && GAME.rounds.length > 1 && GAME.rounds[1].categories && GAME.rounds[1].categories.length > 0;
@@ -1483,6 +1506,7 @@ function makeQR(canvas, text) {
     const splashScreen = document.getElementById('splashScreen');
     if (startButton && splashScreen) {
       startButton.onclick = async () => {
+        state.testingMode = false;
         gameStarted = true;
         await loadGameData();
         splashScreen.classList.add('hidden');
@@ -1496,6 +1520,7 @@ function makeQR(canvas, text) {
     const testingEnvButton = document.getElementById('testingEnvButton');
     if (testingEnvButton && splashScreen) {
       testingEnvButton.onclick = async () => {
+        state.testingMode = true;
         stopSound('theme');
         gameStarted = true;
         await loadGameData();
