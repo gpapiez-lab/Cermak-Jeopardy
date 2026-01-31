@@ -1,5 +1,5 @@
 {
-  "title": "Jeopardy Content",
+  "title": "CERMAK Jeopardy",
   "rounds": [
     {
       "name": "Round 1",
@@ -16,8 +16,8 @@
               "answer": "CT of the abdomen and pelvis with IV\nGadolinium-enhanced MRI of the abdomen and pelvis \nRadiography of the abdomen and pelvis \nUltrasonography of the abdomen and pelvis"
             },
             {
-              "question": "A 42y/o F c/o 1 episode of blood in her urine associated with abdominal pain. Abdominal discomfort is chronic and nonlocalized, but she has no history of UTIs. She reports no dysuria, urgency, or frequency. She is sexually active, and her only medication is an OCP.  FHX is negative. \nPE: Temp 98.6°F, BP 150/100, HR 88, RR 15. BMI is 30. CVS and lung exam is normal. There is no CVT. Abd: there is diffuse tenderness to moderate palpation without rebound. There are palpable masses in the right and left abdomen, with increased discomfort with palpation on the R.\nHct 42%, WBC 8500, BUN 25,  Cr 2. UA: RBC - too numerous to count,  WBC 3-5, HCG: Negative \nWhich of the following is the most likely diagnosis?",
-              "answer": "Autosomal dominant polycystic kidney disease \nRenal cell carcinoma\nRenal vein thrombosis\nUrinary tract infection"
+              "question": "A 42y/o F c/o 1 episode of blood in her urine associated with abdominal pain. Abdominal discomfort is chronic and nonlocalized, but she has no history of UTIs. She reports no dysuria, urgency, or frequency. She is sexually active, and her only medication is an OCP.  FHX is negative. \nPE: Temp 98.6°F, BP 150/100, HR 88, RR 15. BMI is 30. CVS and lung exam is normal. There is no CVT. Abd: there is diffuse tenderness to moderate palpation without rebound. There are palpable masses in the right and left abdomen, with increased discomfort with palpation on the R.\nHct 42%, WBC 8500, BUN 25,  Cr 2. UA: RBC - too numerous to count,  WBC 3-5, HCG: Negative \nWhich of the following is the most likely diagnosis? \nAutosomal dominant polycystic kidney disease \nRenal cell carcinoma\nRenal vein thrombosis\nUrinary tract infection",
+              "answer": "Autosomal dominant polycystic kidney disease"
             },
             {
               "question": "A 27 yo c/o dull, throbbing L testicular pain occurring over the past week. He also notes urinary frequency and dysuria, but no penile discharge. He reports no back pain, weight loss, or fever. He takes ibuprofen as needed for pain. He is sexually active with several different partners and uses barrier protection only intermittently. He reports no testicular trauma. \nPE: BP 126/64, HR 90, BMI is 22. The penis appears normal without discharge at the meatus. The left testicle is boggy and exquisitely tender to palpation over the superior pole. The testicular pain lessens with elevation of' the testis. CBC is WNL, UA shows 2 leukocytes/hpf.\nWhich of the following is the most likely diagnosis?",
@@ -29,24 +29,34 @@
           "name": "Throw Me A Bone",
           "clues": [
             {
-              "question": "A factory worker sustains a forced flexion injury of the distal interphalangeal (DIP) joint,\u000bresulting in a small bone fragment at the dorsal surface of the proximal distal phalanx (mallet fracture). \nWhich one of the following is the most appropriate management strategy?",
-              "answer": "A. Buddy taping and early range of motion\nB. Splinting the DIP joint in extension*\nC. Splinting the DIP joint in flexion\nD. Referral for surgical repair"
+              "question": "A factory worker sustains a forced flexion injury of the distal interphalangeal (DIP) joint,\u000bresulting in a small bone fragment at the dorsal surface of the proximal distal phalanx (mallet fracture). \nWhich one of the following is the most appropriate management strategy?\nA. Buddy taping and early range of motion\nB. Splinting the DIP joint in extension\nC. Splinting the DIP joint in flexion\nD. Referral for surgical repair",
+              "answer": "Splinting the DIP joint in extension"
             },
             {
-              "question": "A 47 y/o man is evaluated for the right lateral shoulder pain. He has been pitching during batting practice for a baseball team for the past 2 months. He has pain when lifting his R arm overhead and also when lying on his right shoulder while sleeping.  On exam, he has no shoulder deformities or swelling. ROM is normal. He has subacromial TTP, with shoulder pain elicited at 60 degrees pf passive abduction. Also, pain with resisted mid-arc abduction but no pain with resisted elbow flexion or forearm supination. He is able to lower his arm smoothly from a fully abducted position; his strength for abduction and external rotation against resistance is normal. \nWhat is the most likely diagnosis?",
-              "answer": "A. Adhesive capsulitis\nB. Bicipital tendinitis\nC. Glenohumeral arthritis\nD. Complete rotator cuff tear \nE. Rotator cuff tendinitis *"
+              "question": "72-year-old with back pain, anemia, recurrent infections. X-ray shows punched-out lytic lesions.",
+              "answer": "What is multiple myeloma?",
+              "images": [
+                "assets/images/slide009_img01.png",
+                "assets/images/slide009_img02.png"
+              ]
             },
             {
-              "question": "67-year-old male presents with a 10-day history of b/l shoulder pain and stiffness accompanied by upper arm tenderness. \nPE: soreness about both shoulders and the patient has great difficulty raising his arms above his shoulders. There is no visual disturbance, and no tenderness over the temporal arteries. \nC-reactive protein is elevated and the erythrocyte sedimentation rate is 65 mm/hr (N 0–17).\u000bWhich one of the following would help to confirm the most likely diagnosis?",
-              "answer": "A. The use of published validated diagnostic criteria \u000b  B. Synovitis of the glenohumeral joint on ultrasonography \u000b  C. A response to treatment with prednisone *\u000b  D. A response to NSAIDs \u000b  E. A lack of systemic symptoms"
+              "question": "67-year-old male presents with a 10-day history of b/l shoulder pain and stiffness accompanied by upper arm tenderness. \nPE: soreness about both shoulders and the patient has great difficulty raising his arms above his shoulders. There is no visual disturbance, and no tenderness over the temporal arteries. \nC-reactive protein is elevated and the erythrocyte sedimentation rate is 65 mm/hr (N 0–17).\nWhich one of the following would help to confirm the most likely diagnosis? \n  A. Synovitis of the glenohumeral joint on ultrasonography \n\tB. A response to treatment with prednisone\u000b \tC. A response to NSAIDs \u000b  \tD. A lack of systemic symptoms",
+              "answer": "A response to treatment with prednisone *"
             },
             {
-              "question": "A 56 yo was dx w gout 4 months ago based on recurrent episodes of podagra and a serum urate level of 7.2. Colchicine and allopurinol were initiated at that time and have been maintained at their initial doses. PMH of CKD and HTN,  for which he takes losartan. \nPE:  temp 98.8 °F, BP 130/85, HR  75. BMI is 27. There is no swelling of the joints. The remainder of the examination is unremarkable. Urate level is 6.4, Cr is 2.1 \nWhich of the following is the most appropriate ?",
-              "answer": "Discontinue colchicine\nDiscontinue losartan\nIncrease allopurinol *\nNo change in therap"
+              "question": "Hand X-ray shows subperiosteal bone resorption. \nLabs: ↑Ca, ↓PO₄, ↑PTH.",
+              "answer": "What is primary hyperparathyroidism?",
+              "images": [
+                "assets/images/slide011_img01.png"
+              ]
             },
             {
-              "question": "A 52 y/o w/ 4-month history of slowly progressive unilateral proptosis. Also enlargement of the glands under his jaw on both sides. He feels well and has no PMH, no meds. \nPE: V/s WNL.  Marked proptosis of the L eye; no inflammation of the sclerae or conjunctivae. B/l enlargement of the lacrimal, parotid, and submandibular glands. There is an enlarged LN at the R angle of the jaw. The remainder of the examination is normal. \nLABS:  CBC w/ differential, BMP, LFTs, ANA UA all normal. \nMRI: a homogeneous enhancing mass behind the L eye and enlargement of the parotid and submandibular glands. \nBx: a lymphoplasmacytic infiltrate with storiform fibrosis and obliterative phlebitis, rare neutrophils, no granulomas; a monoclonal population of cells is not identified. \nWhich of the following is the most likely diagnosis?",
-              "answer": "odgkin lymphoma\nlgG4-related disease* \nSarcoidosis\nSjogren syndrome"
+              "question": "72-year-old woman, no prior fractures. \nDEXA: femoral neck T-score −2.3. FRAX: 10-yr hip fracture risk 4%. \nNormal Ca, normal Vit D after repletion.\nMost appropriate next step?",
+              "answer": "What is initiation of bisphosphonate therapy?",
+              "images": [
+                "assets/images/slide012_img01.png"
+              ]
             }
           ]
         },
@@ -57,45 +67,35 @@
               "question": "A 62 yo man is evaluated for an asymptomatic nodule on his shoulder that has been present for more than 1 year.  Which of the following is the most likely diagnosis?",
               "answer": "Basal Cell Carcinoma *\nPyogenic Granuloma\nSeborrheic Keratosis\nSquamous Cell Carcinoma",
               "images": [
-                {
-                  "src": "assets/images/slide013_img01.png"
-                }
+                "assets/images/slide013_img01.png"
               ]
             },
             {
               "question": "A 45 yo woman is evaluated in the office for a facial rash of 6 months’ duration that involves the cheeks and nose. She is unsure of sun exposure worsens the rash. She does not have a rash elsewhere and does not have fatigue, ulcers or joint pain. Rash is limited to the face as shown. The reminder of the examination is unremarkable. CBC, CMP and TSH are normal. Most likely diagnosis?",
               "answer": "Dermatomyositis\nPsoriasis\nRosacea *\nSeborrheic Dermatitis \nSLE",
               "images": [
-                {
-                  "src": "assets/images/slide014_img01.png"
-                }
+                "assets/images/slide014_img01.png"
               ]
             },
             {
               "question": "A 62-year-old woman is evaluated for multiple areas of scaling and rough skin on her forehead and cheeks. The backs of her hands, and forearms. These areas are painless but persist despite application of moisturizer. No PMH and takes no medications. She has a history of multiple sunburns. \nWhat is the most likely diagnosis?",
               "answer": "Actinic keratosis *\nSeborrheic keratosis\nSquamous cell carcinoma\nSuperficial basal cell CA",
               "images": [
-                {
-                  "src": "assets/images/slide015_img01.png"
-                }
+                "assets/images/slide015_img01.png"
               ]
             },
             {
               "question": "20 y/o new scaling rash.  3 weeks ago he developed subjective fever for 2 days with cough and rhinitis that resolved without treatment. One week later, he developed a spot on the R shoulder, and now the rash has spread to his entire trunk and proximal extremities. No lesions in the genital area. He is sexually active. He has no oral, palmar or genital lesions.\n Which of the following is the most appropriate management?",
               "answer": "Hepatitis C virus testing\nPCR testing\nRPR testing *\nNo further evaluation",
               "images": [
-                {
-                  "src": "assets/images/slide016_img01.png"
-                }
+                "assets/images/slide016_img01.png"
               ]
             },
             {
               "question": "32 y/o F w/  6 mos of new rash on her elbows, knees, and scalp. The rash is intensely pruritic, and she is concerned that it has resulted from insect bites. She has 20 lbs unintentional weight loss. PMH: IBS, takes loperamide PRN.  \nWhich of the following associated conditions is most likely in this patient?",
               "answer": "Celiac disease *\nHepatitis C\nNon-Hodgkin lymphoma\nUlcerative colitis",
               "images": [
-                {
-                  "src": "assets/images/slide017_img01.png"
-                }
+                "assets/images/slide017_img01.png"
               ]
             }
           ]
@@ -184,7 +184,7 @@
     }
   ],
   "final": {
-    "category": "FINAL JEOPARDY",
+    "category": "Final Jeopardy",
     "question": "FINAL JEOPARDY QUESTION\n\n• Only ONE slide\n• Insert image/audio if desired\n• Teams will enter wagers in the game\n\nPut the ANSWER in the Speaker Notes.",
     "answer": "FINAL JEOPARDY ANSWER (e.g., What is … ?)"
   }
