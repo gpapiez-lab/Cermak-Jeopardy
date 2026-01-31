@@ -119,6 +119,53 @@
       transform: translateX(-50%) scale(0.98);
     }
 
+    /* Splash button row: Start + Testing Environment */
+    #splashButtons {
+      position: absolute;
+      bottom: 2%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      justify-content: center;
+      align-items: center;
+    }
+    #splashButtons button {
+      margin: 0;
+    }
+    #startButton {
+      position: static;
+      transform: none;
+    }
+    #startButton:hover {
+      transform: scale(1.05);
+    }
+    #startButton:active {
+      transform: scale(0.98);
+    }
+    #testingEnvButton {
+      background: linear-gradient(180deg, #1a3a8a, #0f2560);
+      color: #e9eefc;
+      border: 3px solid #3b82f6;
+      border-radius: 999px;
+      padding: 20px 40px;
+      font-size: 24px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.4);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      transition: all 0.2s;
+    }
+    #testingEnvButton:hover {
+      transform: scale(1.05);
+      box-shadow: 0 15px 40px rgba(0,0,0,.6), 0 0 30px rgba(59,130,246,.5);
+    }
+    #testingEnvButton:active {
+      transform: scale(0.98);
+    }
+
     /* Hide main content until game starts */
     body.game-started header,
     body.game-started main {
@@ -212,7 +259,10 @@
 <body>
 <!-- Splash Screen -->
 <div id="splashScreen">
-  <button id="startButton">Start</button>
+  <div id="splashButtons">
+    <button id="startButton">Start</button>
+    <button id="testingEnvButton">Testing Environment</button>
+  </div>
 </div>
 
 <!-- Audio Elements -->
@@ -1435,23 +1485,31 @@ function makeQR(canvas, text) {
     const splashScreen = document.getElementById('splashScreen');
     if (startButton && splashScreen) {
       startButton.onclick = async () => {
-        // Set flag to allow game initialization
         gameStarted = true;
-
-        // Load game-data.json (questions, optional image/audio per clue)
         await loadGameData();
-
-        // Hide splash screen
         splashScreen.classList.add('hidden');
         document.body.classList.add('game-started');
-
-        // Create room first, then show QR code
         await createRoom();
+        setTimeout(() => { showQRCode(); }, 300);
+      };
+    }
 
-        // Show QR code immediately after room is created
-        setTimeout(() => {
-          showQRCode();
-        }, 300);
+    // Testing Environment: bypass QR + buzz-in, 4 teams, random active, go to board reveal
+    const testingEnvButton = document.getElementById('testingEnvButton');
+    if (testingEnvButton && splashScreen) {
+      testingEnvButton.onclick = async () => {
+        gameStarted = true;
+        await loadGameData();
+        splashScreen.classList.add('hidden');
+        document.body.classList.add('game-started');
+        await createRoom();
+        // Do NOT show QR code or buzz-in
+        GAME.teams = ['Team 1', 'Team 2', 'Team 3', 'Team 4'];
+        initJeopardy();
+        state.activeTeam = GAME.teams[Math.floor(Math.random() * 4)];
+        if (typeof onFirstBuzzCallback === 'function') {
+          onFirstBuzzCallback(state.activeTeam);
+        }
       };
     }
   }
