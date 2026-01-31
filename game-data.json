@@ -1,16 +1,8 @@
 {
-  "title": "Jeopardy Game",
-  "subtitle": "Author deck import",
+  "title": "Jeopardy Content",
   "rounds": [
     {
       "name": "Round 1",
-      "values": [
-        100,
-        200,
-        300,
-        400,
-        500
-      ],
       "categories": [
         {
           "name": "It Hurts When I Pee",
@@ -64,27 +56,47 @@
             {
               "question": "A 62 yo man is evaluated for an asymptomatic nodule on his shoulder that has been present for more than 1 year.  Which of the following is the most likely diagnosis?",
               "answer": "Basal Cell Carcinoma *\nPyogenic Granuloma\nSeborrheic Keratosis\nSquamous Cell Carcinoma",
-              "image": "assets/images/slide13_img01.png"
+              "images": [
+                {
+                  "src": "assets/images/slide013_img01.png"
+                }
+              ]
             },
             {
               "question": "A 45 yo woman is evaluated in the office for a facial rash of 6 months’ duration that involves the cheeks and nose. She is unsure of sun exposure worsens the rash. She does not have a rash elsewhere and does not have fatigue, ulcers or joint pain. Rash is limited to the face as shown. The reminder of the examination is unremarkable. CBC, CMP and TSH are normal. Most likely diagnosis?",
               "answer": "Dermatomyositis\nPsoriasis\nRosacea *\nSeborrheic Dermatitis \nSLE",
-              "image": "assets/images/slide14_img01.png"
+              "images": [
+                {
+                  "src": "assets/images/slide014_img01.png"
+                }
+              ]
             },
             {
               "question": "A 62-year-old woman is evaluated for multiple areas of scaling and rough skin on her forehead and cheeks. The backs of her hands, and forearms. These areas are painless but persist despite application of moisturizer. No PMH and takes no medications. She has a history of multiple sunburns. \nWhat is the most likely diagnosis?",
               "answer": "Actinic keratosis *\nSeborrheic keratosis\nSquamous cell carcinoma\nSuperficial basal cell CA",
-              "image": "assets/images/slide15_img01.png"
+              "images": [
+                {
+                  "src": "assets/images/slide015_img01.png"
+                }
+              ]
             },
             {
               "question": "20 y/o new scaling rash.  3 weeks ago he developed subjective fever for 2 days with cough and rhinitis that resolved without treatment. One week later, he developed a spot on the R shoulder, and now the rash has spread to his entire trunk and proximal extremities. No lesions in the genital area. He is sexually active. He has no oral, palmar or genital lesions.\n Which of the following is the most appropriate management?",
               "answer": "Hepatitis C virus testing\nPCR testing\nRPR testing *\nNo further evaluation",
-              "image": "assets/images/slide16_img01.png"
+              "images": [
+                {
+                  "src": "assets/images/slide016_img01.png"
+                }
+              ]
             },
             {
               "question": "32 y/o F w/  6 mos of new rash on her elbows, knees, and scalp. The rash is intensely pruritic, and she is concerned that it has resulted from insect bites. She has 20 lbs unintentional weight loss. PMH: IBS, takes loperamide PRN.  \nWhich of the following associated conditions is most likely in this patient?",
               "answer": "Celiac disease *\nHepatitis C\nNon-Hodgkin lymphoma\nUlcerative colitis",
-              "image": "assets/images/slide17_img01.png"
+              "images": [
+                {
+                  "src": "assets/images/slide017_img01.png"
+                }
+              ]
             }
           ]
         },
@@ -138,31 +150,42 @@
             }
           ]
         }
-      ],
-      "dailyDoubleRules": {
-        "count": 1,
-        "avoidTopRow": true
-      }
+      ]
     },
     {
       "name": "Round 2",
-      "values": [
-        200,
-        400,
-        600,
-        800,
-        1000
-      ],
-      "categories": [],
-      "dailyDoubleRules": {
-        "count": 2,
-        "avoidTopRow": true
-      }
+      "categories": [
+        {
+          "name": "CATEGORY NAME",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        }
+      ]
     }
   ],
   "final": {
-    "category": "Final Jeopardy",
-    "question": "",
+    "category": "FINAL JEOPARDY",
+    "question": "FINAL JEOPARDY QUESTION\n\n• Only ONE slide\n• Insert image/audio if desired\n• Teams will enter wagers in the game\n\nPut the ANSWER in the Speaker Notes.",
     "answer": "FINAL JEOPARDY ANSWER (e.g., What is … ?)"
   }
 }
