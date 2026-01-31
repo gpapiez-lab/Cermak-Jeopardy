@@ -41,6 +41,13 @@
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.70);display:none;align-items:center;justify-content:center;padding:18px;z-index:50;}
     .overlay.show{display:flex}
     .modal{width:min(820px,100%);background:rgba(17,26,51,.94);border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow);padding:16px;}
+    /* Question modal: maximized, images first then question in yellow */
+    #qOverlay .modal{width:94vw;max-width:none;height:92vh;max-height:92vh;overflow:auto;padding:20px;}
+    #qOverlay .modal header{margin-bottom:12px;}
+    #qOverlay .modal h2{font-size:clamp(18px,2.2vw,24px);}
+    #qOverlay .q-clue-images{margin:0 0 20px 0;gap:16px;min-height:0;}
+    #qOverlay .q-clue-images img{max-height:min(420px,52vh);}
+    #qOverlay .q-prompt{margin:0 0 14px 0;font-size:clamp(22px,2.8vw,36px);font-weight:900;line-height:1.2;text-align:center;padding:20px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:#f7c948;}
     .modal header{max-width:none;margin:0;padding:0 0 10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .modal h2{margin:0;font-size:16px}
     .meta{color:var(--muted);font-size:13px}
@@ -354,11 +361,11 @@
       <button class="secondary" id="btnCloseQ">Close</button>
     </header>
 
-    <div class="prompt" id="qPrompt"></div>
     <div id="qClueImages" class="q-clue-images">
       <img id="qClueImage1" alt="" />
       <img id="qClueImage2" alt="" />
     </div>
+    <div class="prompt q-prompt" id="qPrompt"></div>
 
     <div class="reveal" id="qReveal">
       <div class="label">Answer</div>
