@@ -303,6 +303,7 @@
     </header>
 
     <div class="prompt" id="qPrompt"></div>
+    <img id="qClueImage" alt="" style="display:none;max-width:100%;max-height:280px;object-fit:contain;margin:10px auto;border-radius:12px;border:1px solid var(--border);" />
 
     <div class="reveal" id="qReveal">
       <div class="label">Answer</div>
@@ -397,6 +398,15 @@
 <div id="viewCategoriesOverlay" aria-modal="true" role="dialog">
   <div id="categorySlideText" class="category-slide"></div>
   <button class="good" id="btnCategoryNext" style="display:none">Next</button>
+</div>
+
+<!-- Round 2 / Double Jeopardy transition -->
+<div class="overlay" id="round2Overlay" aria-modal="true" role="dialog" style="display:none">
+  <div class="modal" style="text-align:center;max-width:520px">
+    <h2 style="margin:0 0 12px 0;font-size:28px;color:var(--accent)">Round 2</h2>
+    <p style="color:var(--muted);margin:0 0 20px 0">Double Jeopardy — higher values!</p>
+    <button class="good" id="btnRound2Continue" style="padding:14px 32px;font-size:18px">Continue</button>
+  </div>
 </div>
 
 <script type="module">
@@ -541,9 +551,9 @@ function makeQR(canvas, text) {
 
 
   /* =========================
-     GAME CONTENT
+     GAME CONTENT (loaded from game-data.json on init)
      ========================= */
-  const GAME = {
+  let GAME = {
     title: "CERMAK Jeopardy",
     subtitle: "Phones buzz in → host awards points.",
     teams: [],
@@ -587,6 +597,65 @@ function makeQR(canvas, text) {
     ],
     final: { category:"Final Jeopardy", q:"This US city is known as the 'Windy City'.", a:"What is Chicago?" }
   };
+
+  /** Load game-data.json: 2 rounds + final. Clues may have optional "image" and/or "audio" (paths under /assets). Daily Doubles assigned randomly per round, skipping first row (categories). */
+  async function loadGameData() {
+    try {
+      const res = await fetch("game-data.json");
+      if (!res.ok) throw new Error(res.statusText);
+      const data = await res.json();
+      GAME.title = data.title || GAME.title;
+      GAME.subtitle = data.subtitle || GAME.subtitle;
+      GAME.final = data.final ? { category: data.final.category || "Final Jeopardy", q: data.final.question || "", a: data.final.answer || "" } : GAME.final;
+      const roundsRaw = Array.isArray(data.rounds) ? data.rounds : [];
+      const defaultValues = [[100,200,300,400,500], [200,400,600,800,1000]];
+      GAME.rounds = [];
+      for (let roundIndex = 0; roundIndex < Math.max(2, roundsRaw.length); roundIndex++) {
+        const round = roundsRaw[roundIndex] || { categories: [] };
+        const values = Array.isArray(round.values) && round.values.length ? round.values : defaultValues[roundIndex] || defaultValues[0];
+        const numRows = values.length;
+        const ddRules = round.dailyDoubleRules || { count: roundIndex === 0 ? 1 : 2, avoidTopRow: true };
+        const allClueKeys = [];
+        (round.categories || []).forEach((cat, c) => {
+          for (let r = 0; r < numRows; r++) allClueKeys.push({ c, r });
+        });
+        const ddCount = Math.min(Math.max(0, ddRules.count || 0), allClueKeys.length);
+        const shuffled = [...allClueKeys].filter(({ r }) => !ddRules.avoidTopRow || r !== 0).sort(() => Math.random() - 0.5);
+        const ddSet = new Set();
+        for (let i = 0; i < ddCount && i < shuffled.length; i++) ddSet.add(`${shuffled[i].c}-${shuffled[i].r}`);
+        const categories = (round.categories || []).map((cat, c) => {
+          const rawClues = cat.clues || [];
+          const clues = [];
+          for (let r = 0; r < numRows; r++) {
+            const clue = rawClues[r];
+            if (!clue) {
+              clues.push({ q: "", a: "", dd: false });
+              continue;
+            }
+            const image = clue.image != null ? clue.image : (clue.images && clue.images[0] && clue.images[0].src);
+            const out = {
+              q: clue.question != null ? clue.question : clue.q,
+              a: clue.answer != null ? clue.answer : clue.a,
+              dd: ddSet.has(`${c}-${r}`)
+            };
+            if (image) out.image = image;
+            if (clue.audio) out.audio = clue.audio;
+            clues.push(out);
+          }
+          return { name: cat.name || "", clues };
+        });
+        GAME.rounds.push({ values, categories });
+      }
+      if (GAME.rounds.length === 0) {
+        GAME.rounds.push({ values: defaultValues[0], categories: [] });
+      }
+      GAME.categories = GAME.rounds[0].categories;
+      GAME.values = GAME.rounds[0].values;
+      console.log("Game data loaded:", GAME.title, "rounds:", GAME.rounds.length, "round 1 categories:", GAME.categories.length);
+    } catch (e) {
+      console.error("Failed to load game-data.json:", e);
+    }
+  }
 
   let gameStarted = false; // Flag to prevent premature initialization
   
@@ -920,7 +989,7 @@ function makeQR(canvas, text) {
   const qOverlay = $("#qOverlay");
   const fOverlay = $("#fOverlay");
 
-  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, questionTilesRevealed:false, buzzInPhase:false };
+  const state = { used:new Set(), scores:{}, activeTeam:null, showDD:false, current:null, final:{ wagers:{}, correct:{} }, categoriesRevealed:false, questionTilesRevealed:false, buzzInPhase:false, currentRound:0 };
   const keyOf=(c,r)=>`${c}-${r}`;
   const cssId=(s)=>s.replace(/[^a-z0-9_-]/gi,"_");
   const esc=(str)=>String(str).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
@@ -930,6 +999,12 @@ function makeQR(canvas, text) {
     $("#gameTitle").textContent = GAME.title;
     $("#gameSubtitle").textContent = GAME.subtitle;
 
+    state.currentRound = 0;
+    if (GAME.rounds && GAME.rounds[0]) {
+      GAME.categories = GAME.rounds[0].categories;
+      GAME.values = GAME.rounds[0].values;
+    }
+    state.used = new Set();
     GAME.teams.forEach(t=> state.scores[t]=0);
     state.activeTeam = GAME.teams[0];
     state.categoriesRevealed = false; // Hidden until first buzz
@@ -1135,10 +1210,29 @@ function makeQR(canvas, text) {
     $("#qReveal").classList.remove("show");
     $("#qValuePill").textContent=money(value);
     $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
+
+    // Clue image: show only if clue has image
+    const img = document.getElementById("qClueImage");
+    if (img) {
+      if (clue.image) {
+        img.src = clue.image;
+        img.style.display = "block";
+      } else {
+        img.removeAttribute("src");
+        img.style.display = "none";
+      }
+    }
+
+    // Clue audio: play if clue has audio (assets in /assets/audio or /assets)
+    if (clue.audio) {
+      const clueAudio = new Audio(clue.audio);
+      clueAudio.play().catch(err => console.warn("Clue audio failed:", err));
+    }
+
     renderQTeams();
     qOverlay.classList.add("show");
-    
-    // Play sound effects
+
+    // Play sound effects (DD or question song; clue.audio is separate)
     if(clue.dd) {
       playSound('dailyDouble');
     } else {
@@ -1189,11 +1283,32 @@ function makeQR(canvas, text) {
     state.scores[state.activeTeam] += correct ? delta : -delta;
     updateScores();
     markUsed(c,r);
-    
+
     // Play sound effect
     playSound(correct ? 'correct' : 'incorrect');
-    
+
     closeQ();
+
+    // If current round is fully played and Round 2 has categories, show Round 2 overlay
+    const totalCells = GAME.categories.length * GAME.values.length;
+    const hasRound2 = GAME.rounds && GAME.rounds.length > 1 && GAME.rounds[1].categories && GAME.rounds[1].categories.length > 0;
+    if (state.used.size >= totalCells && state.currentRound === 0 && hasRound2) {
+      const overlay = document.getElementById("round2Overlay");
+      if (overlay) overlay.classList.add("show");
+    }
+  }
+
+  function advanceToRound2() {
+    state.currentRound = 1;
+    state.used = new Set();
+    if (GAME.rounds && GAME.rounds[1]) {
+      GAME.categories = GAME.rounds[1].categories;
+      GAME.values = GAME.rounds[1].values;
+    }
+    state.questionTilesRevealed = true;
+    const overlay = document.getElementById("round2Overlay");
+    if (overlay) overlay.classList.remove("show");
+    renderBoard();
   }
 
   function openFinal(){
@@ -1284,7 +1399,19 @@ function makeQR(canvas, text) {
 
   function bindUI(){
     $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Host: Hide DD":"Host: Show DD"; renderBoard(); };
-    $("#btnReset").onclick=()=>{ if(!confirm("Reset board & scores?"))return; state.used=new Set(); GAME.teams.forEach(t=>state.scores[t]=0); state.final={wagers:{},correct:{}}; renderScoreboard(); renderBoard(); };
+    $("#btnReset").onclick=()=>{
+      if(!confirm("Reset board & scores?"))return;
+      state.used=new Set();
+      state.currentRound=0;
+      GAME.teams.forEach(t=>state.scores[t]=0);
+      state.final={wagers:{},correct:{}};
+      if (GAME.rounds && GAME.rounds[0]) {
+        GAME.categories = GAME.rounds[0].categories;
+        GAME.values = GAME.rounds[0].values;
+      }
+      renderScoreboard();
+      renderBoard();
+    };
     $("#btnFinal").onclick=openFinal;
 
     $("#btnCloseQ").onclick=closeQ;
@@ -1300,6 +1427,8 @@ function makeQR(canvas, text) {
 
     $("#btnViewCategories").onclick=openViewCategories;
     document.getElementById("btnCategoryNext").onclick=nextViewCategory;
+    const btnRound2Continue = document.getElementById("btnRound2Continue");
+    if (btnRound2Continue) btnRound2Continue.onclick = advanceToRound2;
 
     // Start button handler
     const startButton = document.getElementById('startButton');
@@ -1308,14 +1437,17 @@ function makeQR(canvas, text) {
       startButton.onclick = async () => {
         // Set flag to allow game initialization
         gameStarted = true;
-        
+
+        // Load game-data.json (questions, optional image/audio per clue)
+        await loadGameData();
+
         // Hide splash screen
         splashScreen.classList.add('hidden');
         document.body.classList.add('game-started');
-        
+
         // Create room first, then show QR code
         await createRoom();
-        
+
         // Show QR code immediately after room is created
         setTimeout(() => {
           showQRCode();
