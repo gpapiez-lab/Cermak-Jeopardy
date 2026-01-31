@@ -45,9 +45,9 @@
     #qOverlay .modal{width:94vw;max-width:none;height:92vh;max-height:92vh;overflow:auto;padding:20px;}
     #qOverlay .modal header{margin-bottom:12px;}
     #qOverlay .modal h2{font-size:clamp(18px,2.2vw,24px);}
-    #qOverlay .q-clue-images{margin:0 0 20px 0;gap:16px;min-height:0;}
-    #qOverlay .q-clue-images img{max-height:min(420px,52vh);}
-    #qOverlay .q-prompt{margin:0 0 14px 0;font-size:clamp(22px,2.8vw,36px);font-weight:900;line-height:1.2;text-align:center;padding:20px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:#f7c948;}
+    #qOverlay .q-clue-images{margin:0 0 24px 0;gap:20px;min-height:0;}
+    #qOverlay .q-clue-images img{max-height:min(680px,72vh);max-width:100%;}
+    #qOverlay .q-prompt{margin:0 0 14px 0;font-size:clamp(28px,3.6vw,48px);font-weight:900;line-height:1.35;text-align:center;padding:24px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:#f7c948;white-space:pre-line;}
     .modal header{max-width:none;margin:0;padding:0 0 10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .modal h2{margin:0;font-size:16px}
     .meta{color:var(--muted);font-size:13px}
@@ -1274,7 +1274,9 @@ function makeQR(canvas, text) {
     state.current={c,r,value,clue};
     $("#qTitle").textContent=cat.name;
     $("#qMeta").textContent=`For ${money(value)} • Active team: ${state.activeTeam}`;
-    $("#qPrompt").textContent=clue.q;
+    // Question text: one sentence per line (split on . ? !), preserve existing newlines
+    const questionText = String(clue.q || "").trim().replace(/([.?!])\s+/g, "$1\n");
+    $("#qPrompt").textContent = questionText;
     $("#qAnswer").textContent=clue.a;
     $("#qReveal").classList.remove("show");
     $("#qValuePill").textContent=money(value);
