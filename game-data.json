@@ -1,16 +1,8 @@
 {
-  "title": "Jeopardy Game",
-  "subtitle": "Author deck import",
+  "title": "Jeopardy Content",
   "rounds": [
     {
       "name": "Round 1",
-      "values": [
-        100,
-        200,
-        300,
-        400,
-        500
-      ],
       "categories": [
         {
           "name": "It Hurts When I Pee",
@@ -66,7 +58,7 @@
               "answer": "Basal Cell Carcinoma *\nPyogenic Granuloma\nSeborrheic Keratosis\nSquamous Cell Carcinoma",
               "images": [
                 {
-                  "src": "assets/images/slide13_img01.png"
+                  "src": "assets/images/slide013_img01.png"
                 }
               ]
             },
@@ -75,7 +67,7 @@
               "answer": "Dermatomyositis\nPsoriasis\nRosacea *\nSeborrheic Dermatitis \nSLE",
               "images": [
                 {
-                  "src": "assets/images/slide14_img01.png"
+                  "src": "assets/images/slide014_img01.png"
                 }
               ]
             },
@@ -84,7 +76,7 @@
               "answer": "Actinic keratosis *\nSeborrheic keratosis\nSquamous cell carcinoma\nSuperficial basal cell CA",
               "images": [
                 {
-                  "src": "assets/images/slide15_img01.png"
+                  "src": "assets/images/slide015_img01.png"
                 }
               ]
             },
@@ -93,7 +85,7 @@
               "answer": "Hepatitis C virus testing\nPCR testing\nRPR testing *\nNo further evaluation",
               "images": [
                 {
-                  "src": "assets/images/slide16_img01.png"
+                  "src": "assets/images/slide016_img01.png"
                 }
               ]
             },
@@ -102,7 +94,7 @@
               "answer": "Celiac disease *\nHepatitis C\nNon-Hodgkin lymphoma\nUlcerative colitis",
               "images": [
                 {
-                  "src": "assets/images/slide17_img01.png"
+                  "src": "assets/images/slide017_img01.png"
                 }
               ]
             }
@@ -158,31 +150,42 @@
             }
           ]
         }
-      ],
-      "dailyDoubleRules": {
-        "count": 1,
-        "avoidTopRow": true
-      }
+      ]
     },
     {
       "name": "Round 2",
-      "values": [
-        200,
-        400,
-        600,
-        800,
-        1000
-      ],
-      "categories": [],
-      "dailyDoubleRules": {
-        "count": 2,
-        "avoidTopRow": true
-      }
+      "categories": [
+        {
+          "name": "CATEGORY NAME",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        }
+      ]
     }
   ],
   "final": {
-    "category": "Final Jeopardy",
-    "question": "",
+    "category": "FINAL JEOPARDY",
+    "question": "FINAL JEOPARDY QUESTION\n\n• Only ONE slide\n• Insert image/audio if desired\n• Teams will enter wagers in the game\n\nPut the ANSWER in the Speaker Notes.",
     "answer": "FINAL JEOPARDY ANSWER (e.g., What is … ?)"
   }
 }
