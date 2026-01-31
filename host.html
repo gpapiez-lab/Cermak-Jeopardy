@@ -119,51 +119,46 @@
       transform: translateX(-50%) scale(0.98);
     }
 
-    /* Splash buttons: Start + Testing Environment — stacked so both are visible above background */
+    /* Splash: Start button centered at bottom */
     #splashButtons {
       position: absolute;
-      bottom: 4%;
+      bottom: 2%;
       left: 50%;
       transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      justify-content: center;
-      align-items: center;
       z-index: 2;
-      pointer-events: none;
     }
-    #splashButtons button {
-      margin: 0;
-      pointer-events: auto;
-    }
-    #startButton {
+    #splashButtons #startButton {
       position: static;
       transform: none;
     }
-    #startButton:hover {
+    #splashButtons #startButton:hover {
       transform: scale(1.05);
     }
-    #startButton:active {
+    #splashButtons #startButton:active {
       transform: scale(0.98);
     }
+    /* Testing Environment: top right, separate from main flow */
     #testingEnvButton {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 2;
       background: linear-gradient(180deg, #1a3a8a, #0f2560);
       color: #e9eefc;
       border: 3px solid #3b82f6;
       border-radius: 999px;
-      padding: 18px 36px;
-      font-size: 22px;
+      padding: 14px 28px;
+      font-size: 18px;
       font-weight: 900;
       cursor: pointer;
-      box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.4);
+      box-shadow: 0 8px 24px rgba(0,0,0,.5), 0 0 16px rgba(59,130,246,.4);
       text-transform: uppercase;
-      letter-spacing: 1.5px;
+      letter-spacing: 1px;
       transition: all 0.2s;
     }
     #testingEnvButton:hover {
       transform: scale(1.05);
-      box-shadow: 0 15px 40px rgba(0,0,0,.6), 0 0 30px rgba(59,130,246,.5);
+      box-shadow: 0 12px 32px rgba(0,0,0,.6), 0 0 24px rgba(59,130,246,.5);
     }
     #testingEnvButton:active {
       transform: scale(0.98);
@@ -262,8 +257,8 @@
 <body>
 <!-- Splash Screen -->
 <div id="splashScreen">
+  <button id="testingEnvButton">Testing Environment</button>
   <div id="splashButtons">
-    <button id="testingEnvButton">Testing Environment</button>
     <button id="startButton">Start</button>
   </div>
 </div>
@@ -1501,6 +1496,7 @@ function makeQR(canvas, text) {
     const testingEnvButton = document.getElementById('testingEnvButton');
     if (testingEnvButton && splashScreen) {
       testingEnvButton.onclick = async () => {
+        stopSound('theme');
         gameStarted = true;
         await loadGameData();
         splashScreen.classList.add('hidden');
