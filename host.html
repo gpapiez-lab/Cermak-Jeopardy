@@ -119,20 +119,23 @@
       transform: translateX(-50%) scale(0.98);
     }
 
-    /* Splash button row: Start + Testing Environment */
+    /* Splash buttons: Start + Testing Environment — stacked so both are visible above background */
     #splashButtons {
       position: absolute;
-      bottom: 2%;
+      bottom: 4%;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
+      flex-direction: column;
+      gap: 16px;
       justify-content: center;
       align-items: center;
+      z-index: 2;
+      pointer-events: none;
     }
     #splashButtons button {
       margin: 0;
+      pointer-events: auto;
     }
     #startButton {
       position: static;
@@ -149,8 +152,8 @@
       color: #e9eefc;
       border: 3px solid #3b82f6;
       border-radius: 999px;
-      padding: 20px 40px;
-      font-size: 24px;
+      padding: 18px 36px;
+      font-size: 22px;
       font-weight: 900;
       cursor: pointer;
       box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 20px rgba(59,130,246,.4);
@@ -260,8 +263,8 @@
 <!-- Splash Screen -->
 <div id="splashScreen">
   <div id="splashButtons">
-    <button id="startButton">Start</button>
     <button id="testingEnvButton">Testing Environment</button>
+    <button id="startButton">Start</button>
   </div>
 </div>
 
