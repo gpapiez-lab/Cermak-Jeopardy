@@ -1455,7 +1455,8 @@ function makeQR(canvas, text) {
   function playSound(soundName) {
     const audio = audioElements[soundName];
     if (audio) {
-      audio.currentTime = 0; // Reset to start
+      audio.pause();        // Stop if already playing so replay works (e.g. wrong twice in a row)
+      audio.currentTime = 0;
       audio.play().catch(err => console.warn(`Could not play ${soundName}:`, err));
     }
   }
