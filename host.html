@@ -48,6 +48,7 @@
     #qOverlay .q-clue-images{margin:0 0 24px 0;gap:20px;min-height:0;}
     #qOverlay .q-clue-images img{max-height:min(680px,72vh);max-width:100%;}
     #qOverlay .q-prompt{margin:0 0 14px 0;font-size:clamp(28px,3.6vw,48px);font-weight:900;line-height:1.35;text-align:center;padding:24px;border-radius:18px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:#f7c948;white-space:pre-line;}
+    #qOverlay .q-meta-pills{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:0 0 14px 0;}
     .modal header{max-width:none;margin:0;padding:0 0 10px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .modal h2{margin:0;font-size:16px}
     .meta{color:var(--muted);font-size:13px}
@@ -355,19 +356,18 @@
 <!-- Question Modal -->
 <div class="overlay" id="qOverlay">
   <div class="modal">
-    <header>
-      <div>
-        <h2 id="qTitle"></h2>
-        <div class="meta" id="qMeta"></div>
-      </div>
-      <button class="secondary" id="btnCloseQ">Close</button>
-    </header>
-
     <div id="qClueImages" class="q-clue-images">
       <img id="qClueImage1" alt="" />
       <img id="qClueImage2" alt="" />
     </div>
     <div class="prompt q-prompt" id="qPrompt"></div>
+
+    <div class="q-meta-pills" id="qMetaPills">
+      <span class="pill" id="qCategoryPill"></span>
+      <span class="pill" id="qValuePill"></span>
+      <span class="pill" id="qDDPill" style="display:none">Daily Double</span>
+      <span class="pill" id="qActiveTeamPill"></span>
+    </div>
 
     <div class="reveal" id="qReveal">
       <div class="label">Answer</div>
@@ -375,19 +375,12 @@
     </div>
 
     <div class="actions">
-      <div class="left">
-        <span class="pill" id="qValuePill"></span>
-        <span class="pill" id="qDDPill" style="display:none">Daily Double</span>
-      </div>
       <div class="right">
         <button id="btnReveal">Reveal Answer</button>
         <button class="good" id="btnCorrect">Correct (+)</button>
         <button class="danger" id="btnWrong">Wrong (-)</button>
       </div>
     </div>
-
-    <div class="small" style="margin-top:10px">Select which team is answering:</div>
-    <div class="teams" id="qTeams" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -1274,15 +1267,20 @@ function makeQR(canvas, text) {
   function openQuestion(c,r){
     const cat=GAME.categories[c], clue=cat.clues[r], value=GAME.values[r];
     state.current={c,r,value,clue};
-    $("#qTitle").textContent=cat.name;
-    $("#qMeta").textContent=`For ${money(value)} • Active team: ${state.activeTeam}`;
     // Question text: one sentence per line (split on . ? !), preserve existing newlines
     const questionText = String(clue.q || "").trim().replace(/([.?!])\s+/g, "$1\n");
     $("#qPrompt").textContent = questionText;
     $("#qAnswer").textContent=clue.a;
     $("#qReveal").classList.remove("show");
-    $("#qValuePill").textContent=money(value);
-    $("#qDDPill").style.display=clue.dd?"inline-flex":"none";
+    // Meta pills below question: category, value, DD, active team (same pill style as before)
+    const catEl = document.getElementById("qCategoryPill");
+    const valEl = document.getElementById("qValuePill");
+    const ddEl = document.getElementById("qDDPill");
+    const teamEl = document.getElementById("qActiveTeamPill");
+    if (catEl) catEl.textContent = cat.name;
+    if (valEl) valEl.textContent = money(value);
+    if (ddEl) ddEl.style.display = clue.dd ? "inline-flex" : "none";
+    if (teamEl) teamEl.textContent = state.activeTeam;
 
     // Clue images: up to 2 (clue.images array or single clue.image)
     const imgList = clue.images && clue.images.length ? clue.images : (clue.image ? [clue.image] : []);
@@ -1297,7 +1295,6 @@ function makeQR(canvas, text) {
       clueAudio.play().catch(err => console.warn("Clue audio failed:", err));
     }
 
-    renderQTeams();
     qOverlay.classList.add("show");
 
     // Play sound effects (DD or question song; clue.audio is separate)
@@ -1309,17 +1306,8 @@ function makeQR(canvas, text) {
   }
 
   function renderQTeams(){
-    const wrap=$("#qTeams");
-    wrap.innerHTML = GAME.teams.map(t=>`
-      <button class="${t===state.activeTeam?"":"secondary"}" data-team="${esc(t)}">${esc(t)} ${t===state.activeTeam?"✓":""}</button>
-    `).join("");
-    wrap.querySelectorAll("button").forEach(b=>{
-      b.onclick=()=>{
-        state.activeTeam=b.dataset.team;
-        $("#qMeta").textContent=`For ${money(state.current.value)} • Active team: ${state.activeTeam}`;
-        renderScoreboard(); renderQTeams();
-      };
-    });
+    const teamPill = document.getElementById("qActiveTeamPill");
+    if (teamPill && qOverlay.classList.contains("show")) teamPill.textContent = state.activeTeam;
   }
 
   function closeQ(){ 
@@ -1506,7 +1494,6 @@ function makeQR(canvas, text) {
     };
     $("#btnFinal").onclick=openFinal;
 
-    $("#btnCloseQ").onclick=closeQ;
     qOverlay.onclick=(e)=>{ if(e.target===qOverlay) closeQ(); };
     $("#btnReveal").onclick=()=>$("#qReveal").classList.toggle("show");
     $("#btnCorrect").onclick=()=>applyResult(true);
