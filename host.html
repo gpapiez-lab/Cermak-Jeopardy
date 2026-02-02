@@ -305,7 +305,6 @@
 <header>
   <div>
     <h1 id="gameTitle">Jeopardy</h1>
-    <div class="sub" id="gameSubtitle">Phones buzz in → host awards points.</div>
   </div>
   <div class="controls">
     <button class="secondary" id="btnToggleDD">Host: Show DD</button>
@@ -319,18 +318,15 @@
     <section class="panel scoreboard" id="scoreboard"></section>
 
     <section class="panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:900">Firebase Buzzer</div>
-          <div class="small">Players join via QR code scan.</div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <button id="btnNewRoom" style="display:none">New Room</button>
-          <button class="secondary" id="btnShowQR">Show QR</button>
-          <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
-          <button class="good" id="btnStartGame" style="display:none">Start Game</button>
-          <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
-        </div>
+      <div style="text-align:center;margin-bottom:12px">
+        <div style="font-weight:900">Jeopardy Host Tools</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center">
+        <button id="btnNewRoom" style="display:none">New Room</button>
+        <button class="secondary" id="btnShowQR">Show QR</button>
+        <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
+        <button class="good" id="btnStartGame" style="display:none">Start Game</button>
+        <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
       </div>
 
       <div style="margin-top:12px">
@@ -1061,7 +1057,6 @@ function makeQR(canvas, text) {
 
   function initJeopardy(){
     $("#gameTitle").textContent = GAME.title;
-    $("#gameSubtitle").textContent = GAME.subtitle;
 
     state.currentRound = 0;
     if (GAME.rounds && GAME.rounds[0]) {
