@@ -306,11 +306,6 @@
   <div>
     <h1 id="gameTitle">Jeopardy</h1>
   </div>
-  <div class="controls">
-    <button class="secondary" id="btnToggleDD">Host: Show DD</button>
-    <button id="btnFinal">Final Jeopardy</button>
-    <button class="danger" id="btnReset">Reset Game</button>
-  </div>
 </header>
 
 <main>
@@ -322,21 +317,14 @@
         <div style="font-weight:900">Jeopardy Host Tools</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center">
+        <button class="secondary" id="btnToggleDD">Show DD</button>
+        <button id="btnFinal">Final Jeopardy</button>
+        <button class="danger" id="btnReset">Reset Game</button>
         <button id="btnNewRoom" style="display:none">New Room</button>
         <button class="secondary" id="btnShowQR">Show QR</button>
         <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
         <button class="good" id="btnStartGame" style="display:none">Start Game</button>
         <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
-      </div>
-
-      <div style="margin-top:12px">
-        <div class="small">Join link:</div>
-        <div class="mono" id="joinLink">—</div>
-      </div>
-
-      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <span class="pill">Status: <span id="buzzStatus">—</span></span>
-        <span class="pill">Winner: <span id="buzzWinner">—</span></span>
       </div>
 
       <div style="margin-top:12px">
@@ -743,9 +731,6 @@ function makeQR(canvas, text) {
      BUZZER (Firestore)
      ========================= */
   const roomCodeEl = document.getElementById("roomCode");
-  const joinLinkEl = document.getElementById("joinLink");
-  const buzzStatusEl = document.getElementById("buzzStatus");
-  const buzzWinnerEl = document.getElementById("buzzWinner");
   const playerListEl = document.getElementById("playerList");
   const btnNewRoom = document.getElementById("btnNewRoom");
   const btnResetBuzz = document.getElementById("btnResetBuzz");
@@ -778,8 +763,10 @@ function makeQR(canvas, text) {
   }
 
   function setBuzzerUI({locked, winnerName, players}){
-    if (locked !== undefined) buzzStatusEl.textContent = roomCode ? (locked ? "LOCKED" : "Ready") : "—";
-    if (winnerName !== undefined) buzzWinnerEl.textContent = winnerName || "—";
+    const buzzStatusEl = document.getElementById("buzzStatus");
+    const buzzWinnerEl = document.getElementById("buzzWinner");
+    if (locked !== undefined && buzzStatusEl) buzzStatusEl.textContent = roomCode ? (locked ? "LOCKED" : "Ready") : "—";
+    if (winnerName !== undefined && buzzWinnerEl) buzzWinnerEl.textContent = winnerName || "—";
     if (players !== undefined) playerListEl.textContent = players.length ? players.join(", ") : "—";
   }
 
@@ -787,9 +774,7 @@ function makeQR(canvas, text) {
     roomCode = randCode();
     console.log('Creating room:', roomCode);
     
-    // Hide room code from display (keep it for Firebase functionality)
-    if (roomCodeEl) roomCodeEl.textContent = ""; // Empty or hide the element
-    if (joinLinkEl) joinLinkEl.textContent = playerUrlWithRoom(roomCode); // Just show URL, no room code
+    if (roomCodeEl) roomCodeEl.textContent = "";
     if (btnResetBuzz) btnResetBuzz.disabled = false;
 
     const ref = doc(db, "rooms", roomCode);
@@ -1217,7 +1202,11 @@ function makeQR(canvas, text) {
           </div>
         `).join("")}
       </div>
-      <div class="pill">Active team: <strong style="color:var(--text)">${esc(state.activeTeam)}</strong></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <div class="pill">Active team: <strong style="color:var(--text)">${esc(state.activeTeam)}</strong></div>
+        <span class="pill">Status: <span id="buzzStatus">—</span></span>
+        <span class="pill">Winner: <span id="buzzWinner">—</span></span>
+      </div>
     `;
 
     scoreboardEl.querySelectorAll("button[data-adj]").forEach(b=>{
@@ -1473,7 +1462,7 @@ function makeQR(canvas, text) {
   }
 
   function bindUI(){
-    $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Host: Hide DD":"Host: Show DD"; renderBoard(); };
+    $("#btnToggleDD").onclick=()=>{ state.showDD=!state.showDD; $("#btnToggleDD").textContent=state.showDD?"Hide DD":"Show DD"; renderBoard(); };
     $("#btnReset").onclick=()=>{
       if(!confirm("Reset board & scores?"))return;
       state.used=new Set();
