@@ -156,7 +156,107 @@
       "name": "Round 2",
       "categories": [
         {
-          "name": "CATEGORY NAME",
+          "name": "CATEGORY 1",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        },
+        {
+          "name": "CATEGORY 2",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        },
+        {
+          "name": "CATEGORY 3",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        },
+        {
+          "name": "CATEGORY 4",
+          "clues": [
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            },
+            {
+              "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
+              "answer": "ANSWER GOES HERE (e.g., What is … ?)"
+            }
+          ]
+        },
+        {
+          "name": "CATEGORY 5",
           "clues": [
             {
               "question": "ROUND 2 CLUE\n\n• Replace this text with the QUESTION.\n• Insert images directly onto the slide if needed.\n• Insert audio via Insert → Audio (optional).\n\nPut the ANSWER in the Speaker Notes.",
