@@ -1371,11 +1371,32 @@ function makeQR(canvas, text) {
   function advanceToRound2() {
     state.currentRound = 1;
     state.used = new Set();
-    if (GAME.rounds && GAME.rounds[1]) {
-      GAME.categories = GAME.rounds[1].categories;
-      GAME.values = GAME.rounds[1].values;
+    if (GAME.rounds && GAME.rounds[0] && GAME.rounds[1]) {
+      const r1 = GAME.rounds[0];
+      const r2 = GAME.rounds[1];
+      const numCols = r1.categories.length;
+      const numRows = r1.values.length;
+      const defValues = [200, 400, 600, 800, 1000];
+      const r2Vals = (r2.values && r2.values.length) ? r2.values : defValues;
+      GAME.values = [];
+      for (let r = 0; r < numRows; r++) {
+        GAME.values.push(r2Vals[r] != null ? r2Vals[r] : defValues[r % defValues.length]);
+      }
+      const r2Cats = r2.categories || [];
+      GAME.categories = [];
+      for (let c = 0; c < numCols; c++) {
+        const src = r2Cats[c];
+        const name = src ? (src.name || "") : "";
+        const rawClues = src && src.clues ? src.clues : [];
+        const clues = [];
+        for (let r = 0; r < numRows; r++) {
+          clues.push(rawClues[r] || { q: "", a: "", dd: false });
+        }
+        GAME.categories.push({ name, clues });
+      }
     }
     state.questionTilesRevealed = false;
+    state.categoriesRevealed = true;
     const overlay = document.getElementById("round2Overlay");
     if (overlay) overlay.classList.remove("show");
     const btnRound2 = document.getElementById("btnRound2");
