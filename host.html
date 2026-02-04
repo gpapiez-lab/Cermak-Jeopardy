@@ -9,7 +9,10 @@
     :root{--bg:#0b1020;--panel:#111a33;--tile:#17306e;--tile2:#10265c;--accent:#f7c948;--text:#e9eefc;--muted:#a9b5d6;--danger:#ff5d5d;--good:#46d39a;--border:rgba(255,255,255,.12);--shadow:0 10px 30px rgba(0,0,0,.35);--radius:16px;--font:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
     *{box-sizing:border-box}
     body{margin:0;font-family:var(--font);background:radial-gradient(1200px 800px at 20% 10%, #1a2a66 0%, var(--bg) 50%, #070a14 100%);color:var(--text);min-height:100vh;padding:18px;}
-    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 auto 14px;max-width:1200px;}
+    header{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 auto 14px;max-width:1200px;text-align:center;}
+    header > div{width:100%;}
+    #roundIndicator{font-size:1.1rem;font-weight:800;color:var(--muted);margin-bottom:4px;}
+    #gameTitle{font-size:300%;margin:0;letter-spacing:.5px;line-height:1.1;}
     h1{font-size:20px;margin:0;letter-spacing:.5px}
     .sub{color:var(--muted);font-size:13px}
     .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
@@ -23,7 +26,8 @@
     .row2{display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
     @media (max-width:980px){.row2{grid-template-columns:1fr}}
     .panel{background:rgba(17,26,51,.78);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);}
-    .scoreboard{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .scoreboard{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;position:relative;min-height:120px;}
+    .scoreboard .scoreboard-show-qr{position:absolute;bottom:12px;right:12px;}
     .teams{display:flex;gap:10px;flex-wrap:wrap}
     .team{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:14px;padding:10px 12px;min-width:180px;}
     .team .name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}
@@ -305,14 +309,19 @@
 </audio>
 <header>
   <div>
-    <div id="roundIndicator" style="font-size:1.1rem;font-weight:800;color:var(--muted);margin-bottom:2px;">Round 1</div>
+    <div id="roundIndicator">Round 1</div>
     <h1 id="gameTitle">Jeopardy</h1>
   </div>
 </header>
 
 <main>
   <div class="row2">
-    <section class="panel scoreboard" id="scoreboard"></section>
+    <section class="panel scoreboard" id="scoreboard">
+      <div id="scoreboardContent"></div>
+      <div class="scoreboard-show-qr">
+        <button class="secondary" id="btnShowQR">Show QR</button>
+      </div>
+    </section>
 
     <section class="panel">
       <div style="text-align:center;margin-bottom:12px">
@@ -325,7 +334,6 @@
         <button class="danger" id="btnFinal">Final Jeopardy</button>
         <button class="danger" id="btnReset">Reset Game</button>
         <button id="btnNewRoom" style="display:none">New Room</button>
-        <button class="secondary" id="btnShowQR">Show QR</button>
         <button class="good" id="btnStartGame" style="display:none">Start Game</button>
         <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
       </div>
@@ -1193,7 +1201,9 @@ function makeQR(canvas, text) {
   }
 
   function renderScoreboard(){
-    scoreboardEl.innerHTML = `
+    const contentEl = document.getElementById("scoreboardContent");
+    if (!contentEl) return;
+    contentEl.innerHTML = `
       <div class="teams">
         ${GAME.teams.map(t=>`
           <div class="team">
@@ -1216,10 +1226,10 @@ function makeQR(canvas, text) {
       </div>
     `;
 
-    scoreboardEl.querySelectorAll("button[data-adj]").forEach(b=>{
+    contentEl.querySelectorAll("button[data-adj]").forEach(b=>{
       b.onclick=()=>{ state.scores[b.dataset.team]+=parseInt(b.dataset.adj,10); updateScores(); };
     });
-    scoreboardEl.querySelectorAll("button[data-setactive]").forEach(b=>{
+    contentEl.querySelectorAll("button[data-setactive]").forEach(b=>{
       b.onclick=()=>{ state.activeTeam=b.dataset.setactive; renderScoreboard(); if(qOverlay.classList.contains("show")) renderQTeams(); };
     });
   }
