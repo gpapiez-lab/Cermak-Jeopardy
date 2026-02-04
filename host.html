@@ -318,11 +318,12 @@
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center">
         <button class="secondary" id="btnToggleDD">Show DD</button>
+        <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
+        <button class="pill" id="btnRound2" style="display:none;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.05);padding:10px 20px;font-weight:700;">Round 2</button>
         <button id="btnFinal">Final Jeopardy</button>
         <button class="danger" id="btnReset">Reset Game</button>
         <button id="btnNewRoom" style="display:none">New Room</button>
         <button class="secondary" id="btnShowQR">Show QR</button>
-        <button class="secondary" id="btnViewCategories" style="display:none">View Categories</button>
         <button class="good" id="btnStartGame" style="display:none">Start Game</button>
         <button class="danger" id="btnResetBuzz" disabled>Reset Buzz</button>
       </div>
@@ -1076,6 +1077,8 @@ function makeQR(canvas, text) {
       if (btn) btn.style.display = "none";
       const btnViewCat = document.getElementById("btnViewCategories");
       if (btnViewCat) btnViewCat.style.display = "inline-block";
+      const btnRound2 = document.getElementById("btnRound2");
+      if (btnRound2 && GAME.rounds && GAME.rounds.length > 1) btnRound2.style.display = "inline-flex";
       // Board reveal runs automatically with jeopardy-board-fill sound
       revealBoardAnimated();
     };
@@ -1371,6 +1374,8 @@ function makeQR(canvas, text) {
     state.questionTilesRevealed = true;
     const overlay = document.getElementById("round2Overlay");
     if (overlay) overlay.classList.remove("show");
+    const btnRound2 = document.getElementById("btnRound2");
+    if (btnRound2) btnRound2.style.display = "none";
     renderBoard();
   }
 
@@ -1473,6 +1478,8 @@ function makeQR(canvas, text) {
         GAME.categories = GAME.rounds[0].categories;
         GAME.values = GAME.rounds[0].values;
       }
+      const btnRound2 = document.getElementById("btnRound2");
+      if (btnRound2 && GAME.rounds && GAME.rounds.length > 1) btnRound2.style.display = "inline-flex";
       renderScoreboard();
       renderBoard();
     };
@@ -1492,6 +1499,8 @@ function makeQR(canvas, text) {
     document.getElementById("btnCategoryNext").onclick=nextViewCategory;
     const btnRound2Continue = document.getElementById("btnRound2Continue");
     if (btnRound2Continue) btnRound2Continue.onclick = advanceToRound2;
+    const btnRound2 = document.getElementById("btnRound2");
+    if (btnRound2) btnRound2.onclick = advanceToRound2;
 
     // Start button handler
     const startButton = document.getElementById('startButton');
