@@ -33,13 +33,13 @@
     .team .name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800}
     .team .score{font-size:20px;color:var(--accent)}
     .team .adj{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-    .board{display:grid;gap:10px;background:rgba(17,26,51,.55);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);overflow:auto;}
-    .cell{border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,var(--tile),var(--tile2));padding:10px;min-height:72px;display:flex;align-items:center;justify-content:center;text-align:center;user-select:none;position:relative;}
-    .cell.category{background:linear-gradient(180deg,#2a3f8f,#1b2f74);font-weight:900;letter-spacing:.4px;text-transform:uppercase;font-size:13px;}
-    .cell.question{cursor:pointer;font-weight:900;font-size:20px;color:var(--accent);}
+    .board{display:grid;gap:14px;background:rgba(17,26,51,.55);border:1px solid var(--border);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);overflow:auto;}
+    .cell{border-radius:16px;border:1px solid var(--border);background:linear-gradient(180deg,var(--tile),var(--tile2));padding:14px;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;user-select:none;position:relative;}
+    .cell.category{background:linear-gradient(180deg,#2a3f8f,#1b2f74);font-weight:900;letter-spacing:.4px;text-transform:uppercase;font-size:15px;}
+    .cell.question{cursor:pointer;font-weight:900;font-size:27px;color:var(--accent);}
     .cell.question.used{cursor:not-allowed;filter:grayscale(.9) brightness(.75);color:rgba(247,201,72,.35);}
     .cell.question.cell-hidden{color:transparent;user-select:none;}
-    .badge{position:absolute;top:8px;right:8px;font-size:11px;color:#0b1020;background:var(--accent);padding:3px 8px;border-radius:999px;font-weight:900;}
+    .badge{position:absolute;top:10px;right:10px;font-size:13px;color:#0b1020;background:var(--accent);padding:4px 10px;border-radius:999px;font-weight:900;}
     .pill{display:inline-flex;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.05);font-weight:700;color:var(--muted);gap:8px;align-items:center;}
     .small{font-size:12px;color:var(--muted)}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
@@ -1235,7 +1235,7 @@ function makeQR(canvas, text) {
   }
 
   function renderBoard(){
-    boardEl.style.gridTemplateColumns = `repeat(${GAME.categories.length}, minmax(140px,1fr))`;
+    boardEl.style.gridTemplateColumns = `repeat(${GAME.categories.length}, minmax(186px,1fr))`;
     const cells=[];
     // Hide categories with blank tiles until buzz-in is done
     GAME.categories.forEach(cat=>cells.push(`<div class="cell category">${state.categoriesRevealed ? esc(cat.name) : ""}</div>`));
