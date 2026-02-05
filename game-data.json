@@ -8,20 +8,30 @@
           "name": "It Hurts When I Pee",
           "clues": [
             {
-              "question": "A 72 yo woman had a 6-months h/o almost daily urinary incontinence that frequently occurs without warning. She was dx w/ urge incontinence 6 weeks ago, and started on oxybutynin. Although the frequency of episodes has decreased, incontinence still occurs 2-3 x week, especially when she is away from home and not near a bathroom. There is no dysuria or hematuria. Physical examination is unremarkable. Laboratory results, including UA and urine culture, are normal. \nWhich of the following is the best treatment for this patient’s persisting urge incontinence?",
-              "answer": "Bladder training\nPubovaginal sling surgery\nTransanal electrostimulation \nVaginal estrogen cream"
+              "question": "A 16-year-old boy presents with sudden onset, severe unilateral scrotal pain, nausea, and vomiting. \nExam shows a high-riding testicle with a horizontal lie and absent cremasteric reflex. \nDoppler ultrasound shows reduced intratesticular blood flow.\nWhat is the diagnosis?",
+              "answer": "What is testicular torsion?"
             },
             {
-              "question": "A 74 y/o F is evaluated for a 1-week history of intermittent painless gross hematuria. She has a 3-year h/o stage IV CKD due to diabetic nephropathy, a 12-year history of DM2, diabetic retinopathy, and HTN. Meds: lisinopril, furosemide, insulin glargine, and insulin lispro.\nPE: temp: 98.6 °F, BP 128/85 mm Hg, HR76, and RR is 15/min. BMI is 28. The lungs are clear. There are no abdominal masses or costovertebral angle tenderness. There is no edema.\nLabs: Cr 2.6, GFR 23, UA:  2+ protein; 25-50 erythrocytes/hpf;  No leukocytes, no erythrocyte casts\nWhich of the following is the most appropriate diagnostic test to perform in this patient?",
-              "answer": "CT of the abdomen and pelvis with IV\nGadolinium-enhanced MRI of the abdomen and pelvis \nRadiography of the abdomen and pelvis \nUltrasonography of the abdomen and pelvis"
+              "question": "A 72-year-old postmenopausal woman with type 2 diabetes presents with dysuria, urinary frequency, and suprapubic pain. \nShe has no flank pain, fever, or systemic symptoms.\nUrinalysis shows pyuria and bacteriuria, and urine culture later grows >100,000 CFU/mL of lactose-fermenting gram-negative rods, shown here.\nWhat is the first-line treatment for her condition?",
+              "answer": "What is nitrofurantoin?",
+              "images": [
+                "assets/images/slide004_img01.png"
+              ]
             },
             {
-              "question": "A 42y/o F c/o 1 episode of blood in her urine associated with abdominal pain. Abdominal discomfort is chronic and nonlocalized, but she has no history of UTIs. She reports no dysuria, urgency, or frequency. She is sexually active, and her only medication is an OCP.  FHX is negative. \nPE: Temp 98.6°F, BP 150/100, HR 88, RR 15. BMI is 30. CVS and lung exam is normal. There is no CVT. Abd: there is diffuse tenderness to moderate palpation without rebound. There are palpable masses in the right and left abdomen, with increased discomfort with palpation on the R.\nHct 42%, WBC 8500, BUN 25,  Cr 2. UA: RBC - too numerous to count,  WBC 3-5, HCG: Negative \nWhich of the following is the most likely diagnosis? \nAutosomal dominant polycystic kidney disease \nRenal cell carcinoma\nRenal vein thrombosis\nUrinary tract infection",
-              "answer": "Autosomal dominant polycystic kidney disease"
+              "question": "A 24-year-old sexually active woman presents with severe dysuria and vaginal irritation for 4 days.\nShe denies urinary frequency or flank pain. She has no fever.\nUrinalysis shows: Negative nitrites, No bacteriuria, Minimal pyuria\nPelvic exam reveals mucopurulent cervical discharge with cervical friability.\nWhat is the recommended treatment?",
+              "answer": "What is ceftriaxone plus doxycycline?"
             },
             {
-              "question": "A 27 yo c/o dull, throbbing L testicular pain occurring over the past week. He also notes urinary frequency and dysuria, but no penile discharge. He reports no back pain, weight loss, or fever. He takes ibuprofen as needed for pain. He is sexually active with several different partners and uses barrier protection only intermittently. He reports no testicular trauma. \nPE: BP 126/64, HR 90, BMI is 22. The penis appears normal without discharge at the meatus. The left testicle is boggy and exquisitely tender to palpation over the superior pole. The testicular pain lessens with elevation of' the testis. CBC is WNL, UA shows 2 leukocytes/hpf.\nWhich of the following is the most likely diagnosis?",
-              "answer": "A. Epididymitis*\nB. Testicular torsion\nC. Urinary tract infection\nD. Varicocele"
+              "question": "A 24-year-old man presents with painful gross hematuria that began 2 days after an upper respiratory infection.\nHe has no fever or dysuria. Blood pressure is mildly elevated.\nUrinalysis shows: RBCs without bacteria, Dysmorphic RBCs, Mild proteinuria\nWhat is the diagnosis?",
+              "answer": "What is IgA nephropathy ?"
+            },
+            {
+              "question": "A 24-year-old man presents with painless hematuria and dysuria months after freshwater exposure while swimming in sub-Saharan Africa. \nUrinalysis shows terminal hematuria, and microscopy reveals ova with terminal spines. Imaging later shows bladder wall calcifications.\nWhat is the diagnosis?",
+              "answer": "What is schistosomiasis (Schistosoma haematobium)?",
+              "images": [
+                "assets/images/slide007_img01.png"
+              ]
             }
           ]
         },
