@@ -114,24 +114,24 @@
           "name": "THE SWEETBREADS",
           "clues": [
             {
-              "question": "36-year-old obese female presents to your office with a chief complaint of amenorrhea.  On examination you note hirsutism and body acne.  She is on no medications and a pregnancy test is negative. \nSerum testosterone is at the upper limits of normal. TSH is within normal limits. \nIn addition to weight loss and exercise, which one of the following would be the most appropriate initial management?",
-              "answer": "A. High-dose combined oral contraceptives \u000b B. Progestin-only contraceptives \u000b C. Metformin (Glucophage) *\u000b D. Levothyroxine (Synthroid)"
+              "question": "This gland sits in the sella turcica and secretes TSH, ACTH, LH, FSH, GH, and prolactin.",
+              "answer": "What is the pituitary gland?"
             },
             {
-              "question": "While performing a routine physical examination on a 42-year-old female you discover an apparent nodule in the left lobe of the thyroid measuring approximately 1 cm in diameter, which is confirmed on ultrasonography. \nThe most appropriate next step in the evaluation of this finding is a?",
-              "answer": "A. serum calcitonin level \u000b  B. serum free T3 level \u000b  C. serum TSH level \u000b  D. serum thyroglobulin level \u000b  E. radionuclide thyroid scan"
+              "question": "A patient with hypercalcemia, kidney stones, and bone pain has an elevated PTH.",
+              "answer": "What are the parathyroid glands?"
             },
             {
-              "question": "A 37-year-old man is evaluated for a 2-year history of low libido, loss of morning erections, fatigue, and decreasing muscle mass. He takes no medications. \nPE: V/W WNL, BMI is 35. The remainder of the examination, including genital examination, is normal. FSH, LH, prolactin, TSH WNL. Testosterone level 148, confirmatory morning testosterone level is 137. \nBefore initiating therapy for this patient, which of the following should be determined?",
-              "answer": "Bone mineral density\nDesire for fertility *\nFasting plasma glucose level\nScrotal ultrasound"
+              "question": "A 32-year-old man is evaluated for infertility.\nHe has gynecomastia, small firm testes, and decreased facial hair.\nLow testosterone\nHigh FSH\nHigh LH",
+              "answer": "What is Klinefelter syndrome ?"
             },
             {
-              "question": "A 40-year-old man with type 1 diabetes mellitus presents to the office. He seeks advice on his diabetes management as he intensifies his exercise routine in preparation for participation in a 10-K race. He reports prolonged hypoglycemia during intense exercise, despite eating a meal prior to the activity. His insulin regimen is insulin glargine and insulin glulisine. \nHis most recent hemoglobin A,c level was 7.0%. \nWhich of the following is the most appropriate management of this patient's hypoglycemia on the days that he exercises?",
-              "answer": "Decrease meal-time insulin glulisine dose prior to exercise, continue insulin glargine dose *\nDiscontinue insulin glargine, continue insulin glulisine dose\nIncrease meal-time protein prior to exercise, continue current insulin doses\nSwitch insulin glulisine to a sliding-scale regimen, continue insulin glargine dose"
+              "question": "A 34-year-old woman has episodic headaches, diaphoresis, and palpitations.\nHer blood pressure during episodes is 210/110.\nShe is scheduled for surgery\nWhat medicine should she be started on before the surgery?",
+              "answer": "What is phenoxybenzamine?"
             },
             {
-              "question": "A 33-year-old man is evaluated for infertility. As part of this evaluation, azoospermia is identified on two sequential semen analyses. His medical history is otherwise notable for chronic sinusitis. He takes no medications. \nPE: V/S WNL. BMI is 24. There is no evidence of inguinal hernia. A small left-sided varicocele is present that empties when the patient is recumbent. Testicles are of normal size. Absence of the vas deferens is noted bilaterally. \nWhich of the following is most likely responsible for this patient's infertility?",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A patient has with a history of pituitary surgery\n↓ TSH\n↓ T4",
+              "answer": "What is secondary hypothyroidism due to pituitary failure"
             }
           ]
         },
@@ -139,24 +139,36 @@
           "name": "COUGH IT UP",
           "clues": [
             {
-              "question": "A 33-y",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A 67-year-old smoker presents with fever, productive cough, and pleuritic chest pain.\nCXR shows right lower lobe consolidation with air bronchograms\nWhat is the diagnosis?",
+              "answer": "What is community-acquired pneumonia",
+              "images": [
+                "assets/images/slide023_img01.png"
+              ]
             },
             {
-              "question": "A 33-y",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A patient has rust-colored sputum and fever.\nSputum Gram stain shows gram-positive lancet-shaped diplococci.\nWhat is the organism?",
+              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions",
+              "images": [
+                "assets/images/slide024_img01.jpg"
+              ]
             },
             {
-              "question": "A 33-y",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A healthcare worker has a positive PPD but normal chest X-ray and no symptoms.\nWhat is the recommended prophylaxis?",
+              "answer": "What is treated with isoniazid plus vitamin B6?"
             },
             {
-              "question": "A 33-y",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A patient with night sweats, weight loss, and hemoptysis\n CXR is shown.\nWhat is the diagnosis?",
+              "answer": "What is active tuberculosis",
+              "images": [
+                "assets/images/slide026_img01.jpg"
+              ]
             },
             {
-              "question": "A 33-y",
-              "answer": "Anabolic steroid abuse\nCystic fibrosis *\nKlinefelter syndrome\nVaricocele\nY chromosome microdeletions"
+              "question": "A HIV patient with CD4 count of 120 presents with progressive dyspnea and dry cough\nSputum silver stain shows cup-shaped cysts.\nWhat is the diagnosis?",
+              "answer": "What is Pneumocystis jirovecii pneumonia",
+              "images": [
+                "assets/images/slide027_img01.png"
+              ]
             }
           ]
         }
